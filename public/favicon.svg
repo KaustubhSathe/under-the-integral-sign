@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Under the Integral Sign">
+  <rect width="32" height="32" rx="7" fill="#1b1a17"/>
+  <!-- integral sign -->
+  <path d="M22.5 5.5c-3.4-1.2-5.6.8-6.2 4.4l-3.6 13.2c-.6 3.6-2.8 5.6-6.2 4.4"
+        fill="none" stroke="#e0b45c" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- lower limit / baseline tick -->
+  <path d="M9.5 22.5h4" fill="none" stroke="#e0b45c" stroke-width="2.4" stroke-linecap="round"/>
+  <!-- x -->
+  <path d="M26 20.5h-.01M26 27.5h-.01" fill="none" stroke="#e0b45c" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

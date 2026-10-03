@@ -26,7 +26,10 @@ const {
   entries.length === 0 ? (
     <p class="empty">{emptyMessage}</p>
   ) : (
-    <ul class:list={["card-grid", layout === "list" && "card-grid--single"]}>
+    <ul
+      class:list={["card-grid", layout === "list" && "card-grid--single"]}
+      data-pagefind-ignore
+    >
       {entries.map((entry) => (
         <EntryCard
           entry={entry}

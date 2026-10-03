@@ -29,9 +29,18 @@ export default defineConfig({
   },
   integrations: [
     sitemap(),
+    /*
+     * This integration builds the search index as part of `astro build`, so
+     * there is no separate pagefind CLI step. Entries mark their content with
+     * data-pagefind-body, and listings opt out with data-pagefind-ignore.
+     */
     pagefind({
-      index: {
-        rootSelector: "[data-pagefind-body]",
+      indexConfig: {
+        // `rootSelector` is only a fallback; data-pagefind-body does the real work.
+        // KaTeX emits a great many presentational svg-free spans, so excluding
+        // decorative SVG keeps the index clean. data-pagefind-ignore is honoured
+        // by Pagefind natively and needs no entry here.
+        excludeSelectors: ["svg"],
       },
     }),
   ],

@@ -39,11 +39,10 @@ export interface EntryRef {
 /** Only an explicit `draft: true` hides an entry. `status: stub` still publishes. */
 const isDraft = (entry: VaultEntry) => entry.data.draft === true;
 
-function toRef(entry: ProblemEntry, kind: "problems"): EntryRef;
-function toRef(entry: TheoryEntry, kind: "theory"): EntryRef;
-function toRef(entry: VaultEntry, kind: Kind): EntryRef {
+function toRef(entry: ProblemEntry | TheoryEntry, kind: Kind): EntryRef {
   const d = entry.data;
   const slug = entry.id.includes("/") ? entry.id.slice(entry.id.lastIndexOf("/") + 1) : entry.id;
+  const isProblem = entry.collection === "problems";
   return {
     id: `${kind}/${entry.id}`,
     kind,
@@ -55,16 +54,16 @@ function toRef(entry: VaultEntry, kind: Kind): EntryRef {
     topic: d.topic,
     topics: [d.topic, ...(d.topics ?? []).filter((t) => t !== d.topic)],
     tags: d.tags ?? [],
-    exam: "exam" in d ? d.exam : undefined,
-    source: "source" in d ? d.source : undefined,
-    year: "year" in d ? d.year : undefined,
-    difficulty: "difficulty" in d ? d.difficulty : undefined,
-    section: "section" in d ? d.section : undefined,
+    exam: isProblem ? entry.data.exam : undefined,
+    source: isProblem ? entry.data.source : undefined,
+    year: isProblem ? entry.data.year : undefined,
+    difficulty: isProblem ? entry.data.difficulty : undefined,
+    section: isProblem ? undefined : entry.data.section,
     status: d.status,
     date: d.date,
     updated: d.updated,
-    keyIdea: "keyIdea" in d ? d.keyIdea : undefined,
-    stars: "difficulty" in d ? (DIFFICULTY_STARS[d.difficulty] ?? 0) : 0,
+    keyIdea: isProblem ? entry.data.keyIdea : undefined,
+    stars: isProblem ? (DIFFICULTY_STARS[entry.data.difficulty] ?? 0) : 0,
   };
 }
 

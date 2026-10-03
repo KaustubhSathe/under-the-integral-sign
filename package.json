@@ -7,10 +7,11 @@
   "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && pagefind --site dist",
+    "build": "astro build",
     "build:site": "astro build",
     "preview": "astro preview",
     "check": "astro check",
+    "typecheck": "tsc --noEmit",
     "admin": "pnpm --dir tools/admin start",
     "new": "node tools/new-entry.mjs",
     "astro": "astro"
@@ -26,6 +27,7 @@
     "remark-math": "^6.0.0"
   },
   "devDependencies": {
-    "pagefind": "^1.4.0"
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^6.0.3"
   }
 }

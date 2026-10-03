@@ -68,7 +68,7 @@ const description = d.summary || d.title;
   published={entry.data.date}
   updated={entry.data.updated ?? entry.data.date}
 >
-  <article class="prose-with-toc" data-pagefind-ignore>
+  <article class="prose-with-toc">
     <div class="prose">
       <EntryHeader entry={self} data={entry.data as any} headings={headings} />
 
