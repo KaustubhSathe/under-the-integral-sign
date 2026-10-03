@@ -1,4 +1,4 @@
----
+﻿---
 import { render, getCollection, type CollectionEntry } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import EntryHeader from "../../components/EntryHeader.astro";
@@ -64,7 +64,7 @@ const description = d.summary || d.title;
   description={description}
   type="article"
   topics={s.topics}
-  exams={s.exams}
+  subtopics={s.subtopics}
   published={entry.data.date}
   updated={entry.data.updated ?? entry.data.date}
   withToc

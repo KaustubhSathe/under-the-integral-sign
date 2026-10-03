@@ -1,4 +1,4 @@
----
+﻿---
 import Base from "../../layouts/Base.astro";
 import EntryList from "../../components/EntryList.astro";
 import { allEntries, stats } from "../../lib/entries";
@@ -29,7 +29,7 @@ const s = await stats();
   title={label}
   description={`${entries.length} theory entries filed as ${label}.`}
   topics={s.topics}
-  exams={s.exams}
+  subtopics={s.subtopics}
 >
   <div class="page-head">
     <p class="page-head__eyebrow">Theory section</p>

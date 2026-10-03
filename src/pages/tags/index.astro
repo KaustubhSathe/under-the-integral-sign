@@ -1,4 +1,4 @@
----
+﻿---
 import Base from "../../layouts/Base.astro";
 import { allEntries, stats } from "../../lib/entries";
 import { href, count, pluralize, titleize } from "../../lib/utils";
@@ -10,16 +10,16 @@ const tags = s.tags;
 
 <Base
   title="Tags"
-  description="Every tag in the vault, with counts — the full cross-cut of problems and theory."
+  description="Every tag in the vault, with counts â€” the full cross-cut of problems and theory."
   topics={s.topics}
-  exams={s.exams}
+  subtopics={s.subtopics}
 >
   <div class="page-head">
     <p class="page-head__eyebrow">Index</p>
     <h1 class="page-head__title">Tags</h1>
     <p class="page-head__lede">
       {pluralize(tags.length, "tag")} across {count(entries.length, "entry", "entries")}.
-      Tags cut across topics — <span class="mono">jensen</span> appears in inequalities and
+      Tags cut across topics â€” <span class="mono">jensen</span> appears in inequalities and
       in analysis, <span class="mono">permutations</span> in combinatorics and probability.
     </p>
   </div>

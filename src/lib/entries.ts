@@ -22,9 +22,9 @@ export interface EntryRef {
   title: string;
   summary: string;
   topic: Topic;
-  topics: Topic[];
+  /** Narrower bucket within the topic, e.g. "integrals". */
+  subtopic: string;
   tags: string[];
-  exam?: string;
   source?: string;
   year?: number;
   difficulty?: string;
@@ -52,9 +52,8 @@ function toRef(entry: ProblemEntry | TheoryEntry, kind: Kind): EntryRef {
     title: d.title,
     summary: d.summary,
     topic: d.topic,
-    topics: [d.topic, ...(d.topics ?? []).filter((t) => t !== d.topic)],
+    subtopic: d.subtopic,
     tags: d.tags ?? [],
-    exam: isProblem ? entry.data.exam : undefined,
     source: isProblem ? entry.data.source : undefined,
     year: isProblem ? entry.data.year : undefined,
     difficulty: isProblem ? entry.data.difficulty : undefined,
@@ -118,7 +117,7 @@ export interface VaultStats {
   problems: number;
   theory: number;
   topics: Counted[];
-  exams: Counted[];
+  subtopics: Counted[];
   tags: Counted[];
   byDifficulty: Counted[];
   solved: number;
@@ -130,8 +129,8 @@ export async function stats(): Promise<VaultStats> {
   return {
     problems: problems.length,
     theory: entries.length - problems.length,
-    topics: countBy(entries, (e) => e.topics),
-    exams: countBy(problems, (e) => (e.exam ? [e.exam] : [])),
+    topics: countBy(entries, (e) => [e.topic]),
+    subtopics: countBy(entries, (e) => [e.subtopic]),
     tags: countBy(entries, (e) => e.tags),
     byDifficulty: countBy(problems, (e) => (e.difficulty ? [e.difficulty] : [])),
     solved: problems.filter((e) => e.status === "polished").length,
@@ -140,7 +139,7 @@ export async function stats(): Promise<VaultStats> {
 
 /** Topics that actually have content, in taxonomy order. */
 export function topicsWithContent(entries: EntryRef[]): Topic[] {
-  const present = new Set(entries.flatMap((e) => e.topics));
+  const present = new Set(entries.map((e) => e.topic));
   return TOPICS.filter((t) => present.has(t));
 }
 
@@ -170,10 +169,9 @@ export function relatedTo(
     .filter((c) => !explicit.includes(c))
     .map((c) => {
       let score = 0;
-      if (c.topic === entry.topic) score += 3;
-      score += c.topics.filter((t) => entry.topics.includes(t)).length;
+      if (c.subtopic === entry.subtopic) score += 3;
+      else if (c.topic === entry.topic) score += 1;
       score += c.tags.filter((t) => entry.tags.includes(t)).length * 2;
-      if (c.exam && c.exam === entry.exam) score += 1;
       return { c, score };
     })
     .filter((x) => x.score > 0)

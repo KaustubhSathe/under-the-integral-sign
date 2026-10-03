@@ -862,7 +862,7 @@ a.badge:hover {
   background: var(--accent-wash);
   color: var(--accent);
 }
-.badge--exam {
+.badge--subtopic {
   border-color: color-mix(in srgb, var(--link) 40%, var(--border));
   color: var(--link);
   background: color-mix(in srgb, var(--link) 7%, var(--surface));

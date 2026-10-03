@@ -52,17 +52,15 @@ in `dev`.
 ```
 content/                      ← YOUR CONTENT. Everything else is machinery.
   problems/
-    analysis/                 ← the topic folder becomes part of the URL
-      riemann-sum-arctangent-limit.md
-    number-theory/
-      divisors-of-2m-plus-1.md
-  theory/
-    inequalities/
-      cauchy-schwarz-engel-form.md
+    calculus/                 ← topic folder — becomes part of the URL
+      integrals/              ← subtopic folder — becomes part of the URL
+        riemann-sum-arctangent-limit.md
+        tan-power-symmetry-integral.md
+  theory/                     ← same two-level shape (currently empty)
 
 src/
   content.config.ts           ← the frontmatter contract (Zod schema)
-  lib/taxonomy.ts             ← the list of topics, exam types, difficulties
+  lib/taxonomy.ts             ← topics, subtopics, difficulties
   components/  layouts/  pages/  styles/
 
 tools/admin/                  ← the local admin panel (never deployed)
@@ -76,15 +74,36 @@ public/images/                ← images you upload from the admin panel
 .github/workflows/deploy.yml  ← builds and publishes to GitHub Pages
 ```
 
-**URLs are derived from the file path plus the topic:**
+### Topic → subtopic
+
+The taxonomy is two levels. **Topic** is the broad area; **subtopic** is the
+narrower bucket inside it. Both are part of an entry's folder and its URL:
 
 ```
-content/problems/analysis/riemann-sum-arctangent-limit.md
-  → /problems/analysis/riemann-sum-arctangent-limit/
-  → /topic/analysis/
+content/problems/calculus/integrals/riemann-sum-arctangent-limit.md
+  → /problems/calculus/integrals/riemann-sum-arctangent-limit/
+  → /topic/calculus/                     (the whole topic)
+  → /topic/calculus/integrals/           (just this subtopic)
 ```
 
-Renaming a file changes its URL, so the admin panel only renames on request.
+The taxonomy currently defines exactly one of each:
+
+| Topic | Subtopics |
+|---|---|
+| `calculus` | `integrals` |
+
+Add more in **two places** — `src/lib/taxonomy.ts` for the site and
+`tools/admin/schema.mjs` for the admin panel — then restart both. The two lists
+are kept in sync by hand because the admin panel does not import the site's
+TypeScript.
+
+Renaming a file changes its URL, so the admin panel only renames on request. A
+subtopic is a real folder, so changing an entry's subtopic *moves the file*.
+
+> **Do not put a `slug:` field in frontmatter.** Astro's glob loader treats a
+> frontmatter `slug` as the entry's entire id, which collapses the entry's URL
+> to `/problems/<slug>/` and loses the topic/subtopic path. The file path is the
+> single source of truth for the URL, and the admin panel never writes a slug.
 
 ---
 
@@ -95,25 +114,22 @@ file the site cannot build. The fields for a problem:
 
 ```yaml
 ---
-title: "In an acute triangle, show sin A + sin B + sin C > 2"
-topic: inequalities          # exactly one; sets the folder and /topic/<x> URL
-topics: [geometry]           # optional extra topics, for cross-listing
-tags: [concavity, imo]       # free-form, lowercase, hyphenated
-difficulty: warmup           # warmup | standard | hard | brutal | research
-exam: rmo                    # jee-advanced | jee-main | rmo | inmo | imo |
-                             # putnam | integration-bee | undergrad |
-                             # olympiad-other | textbook | own
-source: "Classical; a standard RMO/INMO warm-up"   # plain text
+title: "A hundredth power of tan, and why the answer is still pi/4"
+topic: calculus               # exactly one; sets the first folder level
+subtopic: integrals           # exactly one; must belong to the topic above
+tags: [definite-integrals, symmetry, integration-bee]   # free-form
+difficulty: warmup            # warmup | standard | hard | brutal | research
+source: "Integration bee staple"    # free text — where it came from
 year: 2019
 problemNumber: "2"
 summary: "One sentence shown on cards. Plain text."
 keyIdea: "The one line that unlocks it. Plain text — the most valuable field."
-hints:                       # plain text, rendered as collapsible hints
-  - "Fix C and study what happens to A."
-answer: "pi/4"               # plain text — frontmatter is NOT run through KaTeX
-related: [cauchy-schwarz-engel-form]   # slugs of other entries
-sourceUrl: "https://..."     # optional, must be a full URL
-status: polished             # stub | draft | polished
+hints:                        # plain text, rendered as collapsible hints
+  - "Try the substitution x -> pi/2 - x."
+answer: "pi/4"                # plain text — frontmatter is NOT run through KaTeX
+related: [riemann-sum-arctangent-limit]   # slugs of other entries
+sourceUrl: "https://..."      # optional, must be a full URL
+status: polished              # stub | draft | polished
 date: 2025-01-14
 draft: false                 # true hides the entry from the build entirely
 ---
@@ -230,12 +246,20 @@ this wrong and every internal link 404s.
 
 ## Customising
 
-**The taxonomy** — add a topic in `src/lib/taxonomy.ts` **and** in
-`tools/admin/schema.mjs` (the admin panel does not import the site's TypeScript,
-so the two lists are kept in sync by hand), then restart both processes.
+**The taxonomy** — add a topic or subtopic in `src/lib/taxonomy.ts` (`TOPICS`,
+`SUBTOPICS`, and a label) **and** in `tools/admin/schema.mjs` (`TAXONOMY`), then
+restart both processes. The admin panel does not import the site's TypeScript,
+so the two lists are kept in sync by hand. A subtopic must be listed under the
+topic it belongs to — the build rejects an entry whose `subtopic` is not a
+subtopic of its `topic`.
 
 **Site identity** — name, tagline, description, author, repo URL:
 `src/lib/site.ts`.
+
+**Reading width** — three coupled values in `src/styles/global.css`:
+`--sidebar-w`, `--toc-width` and `--prose-max`, plus the `min-width` on the TOC
+grid. The breakpoint is derived from them, so if you widen the sidebar, raise the
+breakpoint to match or the prose starts shrinking as the window grows.
 
 **Look and feel** — one stylesheet, `src/styles/global.css`, with all colours
 declared as custom properties at the top and a dark theme driven by

@@ -5,7 +5,7 @@ import Icon from "../components/Icon.astro";
 import { allEntries, stats } from "../lib/entries";
 import { SITE } from "../lib/site";
 import { href, pluralize } from "../lib/utils";
-import { TOPIC_LABELS, type Topic } from "../lib/taxonomy";
+import { TOPIC_LABELS, subtopicLabel, topicOfSubtopic, type Topic } from "../lib/taxonomy";
 
 const entries = await allEntries();
 const s = await stats();
@@ -14,21 +14,34 @@ const s = await stats();
 const latestProblems = entries.filter((e) => e.kind === "problems").slice(0, 6);
 const latestTheory = entries.filter((e) => e.kind === "theory").slice(0, 4);
 const topicsWithCount = s.topics.filter((t) => t.count > 0);
+
+// Subtopics carry their own link, since a subtopic slug alone does not know
+// which topic it belongs to.
+const subtopicsWithCount = s.subtopics
+  .filter((sub) => sub.count > 0)
+  .map((sub) => {
+    const topic = topicOfSubtopic(sub.key);
+    return {
+      ...sub,
+      label: subtopicLabel(sub.key),
+      href: topic ? `/topic/${topic}/${sub.key}/` : "/problems/",
+    };
+  });
 ---
 
-<Base topics={s.topics} exams={s.exams}>
+<Base topics={s.topics} subtopics={s.subtopics}>
   <section class="hero">
     <p class="page-head__eyebrow">A personal mathematics vault</p>
     <h1 class="hero__title">
       Problems, proofs and the <em>one idea</em> that unlocks each of them.
     </h1>
     <p class="hero__lede">
-      Competition and undergraduate mathematics — JEE Advanced, RMO, INMO, IMO,
-      Putnam, integration bee — written up in full, with the key idea stated up
+      Competition and undergraduate mathematics â€” JEE Advanced, RMO, INMO, IMO,
+      Putnam, integration bee â€” written up in full, with the key idea stated up
       front and every solution worked to the end.
     </p>
     <p class="hero__formula">
-      ∫ · every entry is a plain <code>.md</code> file, versioned in git.
+      âˆ« Â· every entry is a plain <code>.md</code> file, versioned in git.
     </p>
   </section>
 
@@ -68,6 +81,14 @@ const topicsWithCount = s.topics.filter((t) => t.count > 0);
               <a class="badge badge--topic" href={href(`/topic/${t.key}/`)}>
                 {TOPIC_LABELS[t.key as Topic] ?? t.key}
                 <span class="faint">{t.count}</span>
+              </a>
+            </li>
+          ))}
+          {subtopicsWithCount.map((sub) => (
+            <li>
+              <a class="badge badge--subtopic" href={href(sub.href)}>
+                {sub.label}
+                <span class="faint">{sub.count}</span>
               </a>
             </li>
           ))}

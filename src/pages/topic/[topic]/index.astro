@@ -1,0 +1,103 @@
+---
+import Base from "../../../layouts/Base.astro";
+import EntryList from "../../../components/EntryList.astro";
+import { allEntries, countBy, stats } from "../../../lib/entries";
+import { TOPICS, TOPIC_LABELS, subtopicLabel, subtopicsOf, type Topic } from "../../../lib/taxonomy";
+import { count, href, pluralize } from "../../../lib/utils";
+
+/**
+ * A topic page: /topic/calculus/
+ *
+ * Lists the topic's subtopics as entry points, then every entry in the topic.
+ * Named segments ([topic]/ and [topic]/[subtopic]/) rather than a rest param, so
+ * the two levels are unambiguous in the file tree as well as the router.
+ */
+export async function getStaticPaths() {
+  const entries = await allEntries();
+  const present = new Set(entries.map((e) => e.topic));
+  return TOPICS.filter((t) => present.has(t)).map((topic) => ({
+    params: { topic },
+    props: { topic },
+  }));
+}
+
+interface Props {
+  topic: Topic;
+}
+
+const { topic } = Astro.props;
+const label = TOPIC_LABELS[topic];
+const all = await allEntries();
+const entries = all.filter((e) => e.topic === topic);
+const problems = entries.filter((e) => e.kind === "problems");
+const theory = entries.filter((e) => e.kind === "theory");
+const s = await stats();
+
+const counts = new Map(countBy(entries, (e) => [e.subtopic]).map((c) => [c.key, c.count]));
+const subtopics = subtopicsOf(topic).filter((sub) => counts.has(sub));
+---
+
+<Base
+  title={label}
+  description={`${count(entries.length, "entry", "entries")} on ${label} — problems and theory.`}
+  topics={s.topics}
+  subtopics={s.subtopics}
+>
+  <div class="page-head">
+    <p class="page-head__eyebrow">Topic</p>
+    <h1 class="page-head__title">{label}</h1>
+    <p class="page-head__lede">
+      {pluralize(problems.length, "problem")} and {pluralize(theory.length, "theory note")}
+      filed under {label}.
+    </p>
+  </div>
+
+  {
+    /*
+     * Only worth its own section when there is something to choose between.
+     * With a single subtopic the entries below already carry its badge, so the
+     * section would just say the same thing twice.
+     */
+    subtopics.length > 1 && (
+      <section aria-labelledby="subtopics-head">
+        <div class="section-head">
+          <h2 id="subtopics-head">Subtopics</h2>
+        </div>
+        <ul class="card-grid">
+          {subtopics.map((sub) => (
+            <li class="card" style="padding:0.8rem 0.95rem">
+              <h3 class="card__title" style="font-size:1.05rem">
+                <a href={href(`/topic/${topic}/${sub}/`)}>{subtopicLabel(sub)}</a>
+              </h3>
+              <div class="card__foot" style="border:0;padding-top:0.3rem">
+                <span>{count(counts.get(sub) ?? 0, "entry", "entries")}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    problems.length > 0 && (
+      <section aria-labelledby="tp">
+        <div class="section-head">
+          <h2 id="tp">Problems</h2>
+        </div>
+        <EntryList entries={problems} showKeyIdea hideTopic showDate />
+      </section>
+    )
+  }
+
+  {
+    theory.length > 0 && (
+      <section aria-labelledby="tt">
+        <div class="section-head">
+          <h2 id="tt">Theory</h2>
+        </div>
+        <EntryList entries={theory} showKeyIdea hideTopic showDate />
+      </section>
+    )
+  }
+</Base>

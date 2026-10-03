@@ -1,39 +1,54 @@
 ---
-import { TOPIC_LABELS, DIFFICULTY_LABELS, EXAM_LABELS, type Topic, type Difficulty, type ExamType } from "../lib/taxonomy";
+import {
+  TOPIC_LABELS,
+  DIFFICULTY_LABELS,
+  subtopicLabel,
+  type Topic,
+  type Difficulty,
+} from "../lib/taxonomy";
 import { href, titleize, cx } from "../lib/utils";
 
 interface Props {
-  kind?: "topic" | "exam" | "difficulty" | "tag" | "status" | "theory" | "custom";
-  /** Raw value, e.g. "number-theory". */
+  kind?: "topic" | "subtopic" | "difficulty" | "tag" | "status" | "theory" | "custom";
+  /** Raw value, e.g. "integrals" or "hard". */
   value?: string;
   /** Override the visible label. */
   label?: string;
-  /** Make it a link (default true for topic/exam/tag). */
+  /** Make it a link (default true for topic/subtopic/tag). */
   as?: "link" | "span";
+  /**
+   * The entry's topic. Required for kind="subtopic" so the link can point at
+   * /topic/<topic>/<subtopic>/.
+   */
+  topic?: string;
   class?: string;
   title?: string;
 }
 
-const { kind = "topic", value = "", label, as, class: className, title } = Astro.props;
+const { kind = "topic", value = "", label, as, topic, class: className, title } = Astro.props;
 
 const text =
   label ??
   (kind === "topic"
     ? (TOPIC_LABELS[value as Topic] ?? titleize(value))
-    : kind === "exam"
-      ? (EXAM_LABELS[value as ExamType] ?? titleize(value))
+    : kind === "subtopic"
+      ? subtopicLabel(value)
       : kind === "difficulty"
         ? (DIFFICULTY_LABELS[value as Difficulty] ?? titleize(value))
         : kind === "theory"
           ? "Theory"
           : titleize(value));
 
-const linkable = as === "link" || (as === undefined && (kind === "topic" || kind === "exam" || kind === "tag"));
+const linkable =
+  as === "link" || (as === undefined && (kind === "topic" || kind === "subtopic" || kind === "tag"));
+
 const url =
   kind === "topic"
     ? `/topic/${value}/`
-    : kind === "exam"
-      ? `/exam/${value}/`
+    : kind === "subtopic"
+      ? topic
+        ? `/topic/${topic}/${value}/`
+        : undefined
       : kind === "tag"
         ? `/tags/${value}/`
         : undefined;
@@ -41,7 +56,7 @@ const url =
 const classes = cx(
   "badge",
   kind === "topic" && "badge--topic",
-  kind === "exam" && "badge--exam",
+  kind === "subtopic" && "badge--subtopic",
   kind === "difficulty" && "badge--difficulty",
   kind === "status" && "badge--status",
   kind === "theory" && "badge--theory",

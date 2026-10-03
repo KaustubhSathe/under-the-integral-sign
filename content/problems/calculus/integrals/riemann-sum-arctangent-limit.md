@@ -1,14 +1,13 @@
----
-title: "A Riemann sum that collapses to π/4"
-topic: analysis
-topics: [analysis, inequalities]
+﻿---
+title: "A Riemann sum that collapses to Ï€/4"
+topic: calculus
+subtopic: integrals
 tags: [riemann-sums, limits, telescoping, definite-integrals]
 difficulty: standard
-exam: jee-advanced
 source: "JEE Advanced 2013, Paper 2"
 year: 2013
 summary: "The summand is a Riemann sum in disguise; recognising the sampling points turns the limit into an arctangent integral."
-keyIdea: "Write the summand as (1/n)·f(k/n) so the limit becomes ∫₀¹ f(x) dx, then substitute x = tan θ."
+keyIdea: "Write the summand as (1/n)Â·f(k/n) so the limit becomes âˆ«â‚€Â¹ f(x) dx, then substitute x = tan Î¸."
 answer: "pi/4"
 related: [cauchy-schwarz-engel-form, generating-functions-first-look]
 status: polished
@@ -60,7 +59,7 @@ $$
 
 The whole problem is a change of scale. Each term initially "looks" like it
 depends on $n$ and $k$ separately, but after dividing by $n^{2}$ the only
-quantity left is the ratio $k/n$ — and a sum of the form
+quantity left is the ratio $k/n$ â€” and a sum of the form
 $\frac{1}{n}\sum g(k/n)$ is *by definition* a Riemann sum. The habit worth
 building: whenever you see a limit of a sum with a $1/n$-shaped factor hiding
 inside, hunt for the ratio $k/n$.
