@@ -876,10 +876,23 @@ async function generateAiDraft({ kind, topic }) {
     setSaveState("unsaved");
 
     const used = res.usage?.outputTokens;
-    $("#status").textContent =
-      "AI draft ready — check the maths, then press Save to create the file." +
-      (used ? ` (${used} output tokens)` : "");
-    toast("Draft generated. Review it before saving.", "ok", 6000);
+    if (res.partial) {
+      /*
+       * The reply hit the model's output limit and was salvaged. The fields that
+       * arrived are usable, but something is missing, so this is said plainly
+       * rather than presented as a finished draft.
+       */
+      const missingBody = !d.body;
+      $("#status").textContent = missingBody
+        ? "PARTIAL draft — the reply was cut off before the body was written. Generate again, or ask for a shorter write-up."
+        : "PARTIAL draft — the reply was cut off, so the end of the body may be missing. Check it carefully.";
+      toast("The reply was cut off. The draft is incomplete — check it.", "warn", 9000);
+    } else {
+      $("#status").textContent =
+        "AI draft ready — check the maths, then press Save to create the file." +
+        (used ? ` (${used} output tokens)` : "");
+      toast("Draft generated. Review it before saving.", "ok", 6000);
+    }
     $("#body").focus();
   } catch (err) {
     status.className = "aistatus aistatus--error";
