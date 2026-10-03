@@ -76,6 +76,21 @@ const SESSION_HOURS = Number(process.env.ADMIN_SESSION_HOURS ?? 12);
 const ASTRO_PORT = Number(process.env.ASTRO_PORT ?? 4321);
 const SESSION_COOKIE = "vault_admin";
 
+/*
+ * The dev server serves the site UNDER its base path, because astro.config.mjs
+ * sets `base` to "/<repo>" for GitHub Pages. So a preview URL must be
+ * http://localhost:4321/<base>/problems/<...>/ — without the base you get Astro's
+ * 404 page (served with HTTP 200, which is why this is easy to miss).
+ *
+ * PUBLIC_BASE_PATH is the same variable the build reads, so setting it in .env
+ * keeps the two in step. The default matches astro.config.mjs.
+ */
+const BASE_PATH = (() => {
+  const raw = process.env.PUBLIC_BASE_PATH ?? "/under-the-integral-sign";
+  if (!raw || raw === "/") return "";
+  return `/${raw.replace(/^\/+|\/+$/g, "")}`;
+})();
+
 if (!PASSWORD) {
   console.error(
     [
@@ -240,7 +255,12 @@ app.get("/api/bootstrap", requireAuth, async (_req, res) => {
     },
     config: {
       astroPort: ASTRO_PORT,
-      devUrl: `http://localhost:${ASTRO_PORT}`,
+      /*
+       * Includes the base path, so the client can append /<kind>/<entry>/ and get
+       * a URL the dev server actually serves.
+       */
+      devUrl: `http://localhost:${ASTRO_PORT}${BASE_PATH}`,
+      basePath: BASE_PATH,
       repoRoot: ROOT,
     },
   });
@@ -407,7 +427,9 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, HOST, () => {
-  const devUp = `http://localhost:${ASTRO_PORT}`;
+  // Show the base path: "Site preview http://localhost:4321" alone is misleading,
+  // since that URL is the 404 page rather than the site.
+  const devUp = `http://localhost:${ASTRO_PORT}${BASE_PATH}`;
   console.log(
     [
       "",
