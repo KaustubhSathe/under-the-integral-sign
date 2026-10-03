@@ -268,13 +268,17 @@ function renderForm() {
   fileText.id = "field-file";
   fileText.style.cssText = "color:var(--text-2); font-size:0.85rem; word-break:break-all";
   fileText.textContent = cur.isNew
-    ? "not saved yet — the file is named after the title"
+    ? cur.suggestedSlug
+      ? `content/${cur.kind}/${cur.frontmatter.topic}/${cur.suggestedSlug}.md`
+      : "not saved yet — the file is named after the title"
     : `content/${cur.kind}/${cur.path}`;
   fileWrap.appendChild(fileText);
   const fileHint = document.createElement("div");
   fileHint.className = "field__hint";
   fileHint.textContent = cur.isNew
-    ? "The topic decides the folder; the title decides the filename."
+    ? cur.suggestedSlug
+      ? "Chosen by the model from the content. Rename it after saving if you want."
+      : "The topic decides the folder; the title decides the filename."
     : "This path is the entry's URL. Use “Rename file…” to change the filename.";
   fileWrap.appendChild(fileHint);
   host.appendChild(fileWrap);
@@ -514,6 +518,12 @@ async function save({ renameFile = false, force = false } = {}) {
         path: cur.isNew ? null : cur.path,
         frontmatter,
         body,
+        /*
+         * The filename for a new entry, when something other than the title chose
+         * it. Sent alongside the frontmatter rather than inside it, because a
+         * frontmatter `slug` would override Astro's entry id and flatten the URL.
+         */
+        slug: cur.isNew ? cur.suggestedSlug || null : null,
         expectedMtime: cur.isNew ? null : cur.mtime,
         renameFile,
         force,
@@ -1020,6 +1030,12 @@ async function generateAiDraft({ kind, topic }) {
       path: "",
       isNew: true,
       mtime: null,
+      /*
+       * `suggestedSlug` is where the file will go, not frontmatter. The model is
+       * asked for a short readable filename, because deriving one from a title
+       * gives things like why-the-area-under-1-x-from-1-to-e-is-exactly-1.
+       */
+      suggestedSlug: d.slug || "",
       frontmatter: fm,
       body: d.body || defaultBody(kind, title),
     };

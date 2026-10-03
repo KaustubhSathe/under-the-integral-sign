@@ -372,12 +372,19 @@ app.post("/api/save", requireAuth, async (req, res) => {
 
   const data = result.data;
 
-  // Where should this live? <topic>/<slug>.md, unless an explicit path is given.
-  let slug = slugify(data.slug || data.title || "");
+  /*
+   * Where should this live? <topic>/<slug>.md.
+   *
+   * `slug` arrives as a sibling of the frontmatter, never inside it: a frontmatter
+   * slug becomes Astro's entry id and flattens the URL. It is only consulted for a
+   * NEW entry, so the AI can name the file well instead of forcing the whole title
+   * into the path. Editing keeps the existing filename, so changing a title does
+   * not silently move the file and break incoming links.
+   */
+  const suggested = req.body?.slug ? slugify(String(req.body.slug)) : "";
+  let slug = suggested || slugify(data.slug || data.title || "");
   if (!slug) return res.status(422).json({ error: "Could not derive a filename slug from the title." });
 
-  // Keep the existing filename when editing, so that changing a title does not
-  // silently move the file (and break incoming links) unless asked to.
   const keepSlug = Boolean(originalPath) && !req.body.renameFile;
   if (keepSlug) {
     const base = originalPath.slice(originalPath.lastIndexOf("/") + 1).replace(/\.md$/i, "");

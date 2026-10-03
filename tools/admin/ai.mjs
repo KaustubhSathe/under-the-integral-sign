@@ -31,6 +31,22 @@ const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/gif", "image/web
 const str = (v) => (v === null || v === undefined ? "" : String(v).trim());
 
 /**
+ * Turn a suggested filename into something usable, mirroring the server's
+ * slugify. Kept local so this module has no import cycle with vault.mjs.
+ */
+export function slugify(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    // Strip combining accents, then anything that is not a letter, digit or space.
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 72);
+}
+
+/**
  * Parse the model's reply into an entry object.
  *
  * JSON mode usually gives clean JSON, but three things still go wrong in practice,
@@ -230,6 +246,12 @@ Markdown code fence.
   "title": string,      // one line, plain text, states the problem. Mention the
                         // striking feature when there is one: "A hundredth power
                         // of tan, and why the answer is still π/4"
+  "slug": string,       // the FILENAME, and therefore the URL. lowercase, words
+                        // joined by hyphens, no spaces or punctuation. 3-5 words,
+                        // under about 40 characters. Name the MATHEMATICS, not
+                        // the prose: "tan-power-symmetry-integral", not
+                        // "a-hundredth-power-of-tan-and-why-the-answer-is-still".
+                        // It must be readable on its own in a URL and a file list.
   "summary": string,    // ONE sentence, plain text, no LaTeX. What is this
                         // really asking?
   "keyIdea": string,    // PLAIN TEXT, no LaTeX. The single insight that unlocks
@@ -532,6 +554,12 @@ export async function generateEntry({
     partial,
     entry: {
       title: str(entry.title),
+      /*
+       * A filename, so it is normalised rather than trusted: lowercase, no
+       * punctuation, hyphens only. The server slugifies again before it touches
+       * the filesystem — this is a convenience, not the guard.
+       */
+      slug: slugify(entry.slug),
       summary: str(entry.summary),
       keyIdea: str(entry.keyIdea),
       answer: str(entry.answer),
