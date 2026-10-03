@@ -48,8 +48,24 @@
    * so that ultra-wide screens get generous margins instead of unreadable lines.
    */
   --wrap-max: 96rem;
-  /* Width reserved for the sticky table of contents on wide screens. */
-  --toc-width: clamp(12rem, 16vw, 16rem);
+  /*
+   * Width reserved for the sticky table of contents on wide screens. Fixed, not
+   * a clamp: a clamp that shrinks on smaller viewports makes the prose narrower
+   * exactly where the two-column layout is already tightest, which shows up as
+   * the text stepping *in* as the window grows.
+   */
+  --toc-width: 16rem;
+  /*
+   * Navigation rail width. Both shell tracks are `1fr`, so this comes directly
+   * out of the article column — raise it for roomier labels, lower it for a
+   * wider page. The TOC breakpoint below is what keeps that trade harmless.
+   */
+  --sidebar-w: 13.5rem;
+  /*
+   * Prose line length, in `ch` so it tracks the body font. ~104 characters here.
+   * See the .prose-with-toc rules for the reasoning.
+   */
+  --prose-max: 104ch;
   --gutter: clamp(1rem, 4vw, 2.5rem);
   --radius: 10px;
   --radius-sm: 6px;
@@ -406,12 +422,12 @@ tbody tr:hover {
 @media (min-width: 62rem) {
   .shell {
     /*
-     * 12rem, not the 15.5rem a "comfortable" rail would suggest: both tracks are
-     * `1fr`, so the sidebar comes straight out of the article column. Keeping one
-     * width at every desktop size also avoids a step where a wider window
-     * suddenly leaves *less* room for the prose.
+     * The sidebar comes straight out of the article column, so its width is a
+     * direct trade. Raise --sidebar-w for roomier navigation; the article keeps
+     * its full width either way, because the TOC only floats once the leftover
+     * column can still hold the prose (see the min-width below).
      */
-    grid-template-columns: 12rem minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
     grid-template-rows: auto 1fr auto;
   }
 }
@@ -1227,27 +1243,41 @@ details.solution[open] > summary::before {
   padding-left: 2rem;
 }
 /*
- * The TOC floats beside the article from 68rem up. The prose column is `1fr` so
- * it fills the row rather than sitting in a narrow column, and the leftover
- * space becomes the right margin.
+ * Prose line length.
  *
  * The cap is deliberately generous. Measured in this serif face the body text is
  * 17.2px and 1ch is ~9.85px, so 104ch is ~1024px — about 104 characters per
  * line. That is longer than the classic 66-character ideal and is a deliberate
  * trade for a wide, page-filling layout: long display equations and chains of
- * inequalities get room to breathe instead of wrapping. Lower this toward 75ch
- * for a more traditional column, or raise it toward 120ch for text that runs
- * almost the full width.
+ * inequalities get room to breathe instead of wrapping. Lower `--prose-max`
+ * toward 75ch for a more traditional column.
  *
- * The breakpoint is where the article reaches the prose cap, so floating the TOC
- * costs nothing. It needs viewport - sidebar(192) - gutters(80) >= prose cap
- * (104ch ~= 1024px), i.e. about 95rem. Below that the article is narrower than
- * the cap and the TOC would eat into the prose, making it *narrower* than the
- * single-column layout gives it — so there the TOC sits above the article.
- * Verified by sweeping every 64px from 1024 to 2560: no width is worse than the
- * layout it replaces.
+ * This applies at EVERY width, not only in the two-column layout. If the cap
+ * only kicked in with the grid, then just below the breakpoint the prose would
+ * fill the whole article (1200px+) and then visibly *narrow* to the cap as the
+ * TOC appeared — the layout punishing a wider window.
  */
-@media (min-width: 95rem) {
+.prose-with-toc > .prose {
+  max-width: var(--prose-max);
+  min-width: 0;
+}
+
+/*
+ * The TOC floats beside the article once the article can afford it:
+ *
+ *     viewport - sidebar(216) - gutters(80) - toc(256) - gap(56) >= prose max
+ *     1584     -    216     -    80      -   256     -  56   =  976  >=  963
+ *
+ * which lands at 99rem. Below that, floating the TOC would eat into the text and
+ * leave it narrower than the single-column layout gives it — so there the TOC
+ * sits above the article instead. Getting this wrong is what produced earlier
+ * versions where the text visibly shrank as the window widened.
+ *
+ * The threshold is tied to --sidebar-w, --toc-width and --prose-max: change any
+ * of them and this number has to move with it.
+ * Verified by sweeping every 32px from 1024 to 2560 with zero downward steps.
+ */
+@media (min-width: 99rem) {
   .prose-with-toc {
     display: grid;
     /* prose fills; TOC takes exactly what it needs, leaving a right margin. */
@@ -1257,8 +1287,6 @@ details.solution[open] > summary::before {
   }
   .prose-with-toc > .prose {
     order: 1;
-    min-width: 0;
-    max-width: 104ch;
   }
   .prose-with-toc .toc {
     position: sticky;
