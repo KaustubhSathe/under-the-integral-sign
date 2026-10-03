@@ -1,4 +1,4 @@
-﻿---
+---
 import { render, getCollection, type CollectionEntry } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import EntryHeader from "../../components/EntryHeader.astro";
@@ -42,7 +42,7 @@ const self: EntryRef = found ?? {
   title: d.title,
   summary: d.summary,
   topic: d.topic,
-  topics: [d.topic, ...(d.topics ?? []).filter((t) => t !== d.topic)],
+  subtopic: d.subtopic,
   tags: d.tags ?? [],
   exam: d.exam,
   source: d.source,
@@ -65,6 +65,7 @@ const description = d.summary || d.title;
   type="article"
   topics={s.topics}
   subtopics={s.subtopics}
+  exams={s.exams}
   published={entry.data.date}
   updated={entry.data.updated ?? entry.data.date}
   withToc

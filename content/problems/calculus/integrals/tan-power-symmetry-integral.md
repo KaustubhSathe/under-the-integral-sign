@@ -1,12 +1,13 @@
-﻿---
-title: "A hundredth power of tan, and why the answer is still Ï€/4"
+---
+title: "A hundredth power of tan, and why the answer is still π/4"
 topic: calculus
 subtopic: integrals
 tags: [definite-integrals, symmetry, integration-bee, king-property, trigonometric-substitution]
 difficulty: warmup
+exam: integration-bee
 source: "Integration bee staple"
-summary: "The exponent 100 is a red herring: substituting x â†’ Ï€/2 âˆ’ x produces the reciprocal integrand, and averaging the two forms collapses everything to Ï€/4."
-keyIdea: "For definite integrals where the integrand pairs with its reciprocal under x â†¦ a âˆ’ x, average the integral with its substituted twin: I + I = âˆ« 1 dx."
+summary: "The exponent 100 is a red herring: substituting x → π/2 − x produces the reciprocal integrand, and averaging the two forms collapses everything to π/4."
+keyIdea: "For definite integrals where the integrand pairs with its reciprocal under x ↦ a − x, average the integral with its substituted twin: I + I = ∫ 1 dx."
 answer: "pi/4"
 related: [riemann-sum-arctangent-limit]
 status: polished
@@ -95,7 +96,7 @@ $$
 **Pair an integral with its substituted twin and average.** The pattern is:
 
 1. The domain is symmetric about a point (here $[0,\pi/2]$ about $\pi/4$).
-2. The substitution $x\mapsto a-x$ maps the integrand to something related â€”
+2. The substitution $x\mapsto a-x$ maps the integrand to something related —
    typically the reciprocal, or $1$ minus itself.
 3. Add the original and the transformed integral. The integrands combine into
    something trivial, and $2I$ becomes an easy integral.
@@ -107,12 +108,12 @@ $$
 \int_0^{1}\frac{dx}{1+e^{x}}=\int_0^1\frac{e^{-x}}{e^{-x}+1}\,dx,
 $$
 
-whose sum gives $\int_0^1\frac{dx}{1+e^{x}}+\int_0^1\frac{dx}{1+e^{-x}}=1$ â€” hence
+whose sum gives $\int_0^1\frac{dx}{1+e^{x}}+\int_0^1\frac{dx}{1+e^{-x}}=1$ — hence
 each equals $\tfrac12$.
 
 **Recognise it by the shape of the domain.** Symmetric limits plus an integrand
 involving $f(x)$ and a reciprocal or complement of $f$ is the signature. In a bee
-round, spotting this takes about two seconds and the exponent is irrelevant â€” the
+round, spotting this takes about two seconds and the exponent is irrelevant — the
 whole point of the question is to test whether you flinch at the $100$.
 
 ## Related practice

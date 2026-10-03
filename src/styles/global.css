@@ -867,6 +867,11 @@ a.badge:hover {
   color: var(--link);
   background: color-mix(in srgb, var(--link) 7%, var(--surface));
 }
+.badge--exam {
+  border-color: color-mix(in srgb, var(--accent-soft) 45%, var(--border));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
 .badge--difficulty {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.06em;

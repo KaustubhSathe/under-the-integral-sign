@@ -2,9 +2,12 @@
 import {
   TOPICS,
   TOPIC_LABELS,
+  EXAM_TYPES,
+  EXAM_LABELS,
   subtopicLabel,
   subtopicsOf,
   type Topic,
+  type ExamType,
 } from "../lib/taxonomy";
 import { href } from "../lib/utils";
 import type { Counted } from "../lib/entries";
@@ -14,13 +17,17 @@ interface Props {
   topics?: Counted[];
   /** Per-subtopic entry counts, e.g. "integrals" → 2. */
   subtopics?: Counted[];
+  /** Per-exam-entry counts, e.g. "putnam" → 1. */
+  exams?: Counted[];
 }
 
-const { topics = [], subtopics = [] } = Astro.props;
+const { topics = [], subtopics = [], exams = [] } = Astro.props;
 
 const topicCount = new Map(topics.map((t) => [t.key, t.count]));
 const subtopicCount = new Map(subtopics.map((s) => [s.key, s.count]));
+const examCount = new Map(exams.map((e) => [e.key, e.count]));
 const visibleTopics = TOPICS.filter((t) => topicCount.has(t));
+const visibleExams = EXAM_TYPES.filter((e) => examCount.has(e));
 
 const current = Astro.url.pathname.replace(/\/$/, "") || "/";
 const isCurrent = (target: string) => {
@@ -101,5 +108,31 @@ const here = stripBase(current);
         </div>
       );
     })
+  }
+
+  {
+    /*
+     * Exam provenance cuts across topics and subtopics: the same integral can
+     * have come from the integration bee or from JEE Advanced. This section is
+     * how you browse by where a problem came from rather than what it is about.
+     */
+    visibleExams.length > 0 && (
+      <div class="nav-group">
+        <p class="nav-group__title">Exam sources</p>
+        <ul class="nav-list">
+          {visibleExams.map((e: ExamType) => (
+            <li>
+              <a
+                href={href(`/exam/${e}/`)}
+                aria-current={here === `/exam/${e}` ? "page" : undefined}
+              >
+                <span>{EXAM_LABELS[e]}</span>
+                <span class="count">{examCount.get(e)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
   }
 </nav>

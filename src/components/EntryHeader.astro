@@ -2,7 +2,7 @@
 import Badge from "./Badge.astro";
 import Icon from "./Icon.astro";
 import type { EntryRef } from "../lib/entries";
-import { DIFFICULTY_LABELS, THEORY_SECTION_LABELS, TOPIC_LABELS, subtopicLabel, type Difficulty, type TheorySection, type Topic } from "../lib/taxonomy";
+import { DIFFICULTY_LABELS, EXAM_LABELS, THEORY_SECTION_LABELS, TOPIC_LABELS, subtopicLabel, type Difficulty, type ExamType, type TheorySection, type Topic } from "../lib/taxonomy";
 import { href, formatDate, isoDate, KIND_LABELS } from "../lib/utils";
 
 interface Props {
@@ -15,6 +15,7 @@ interface Props {
 const { entry, data } = Astro.props;
 
 const difficulty = entry.difficulty ? DIFFICULTY_LABELS[entry.difficulty as Difficulty] : undefined;
+const exam = entry.exam ? EXAM_LABELS[entry.exam as ExamType] : undefined;
 const section = entry.section ? THEORY_SECTION_LABELS[entry.section as TheorySection] : undefined;
 const topicLabel = TOPIC_LABELS[entry.topic as Topic] ?? entry.topic;
 const date = entry.updated ?? entry.date;
@@ -37,6 +38,7 @@ const kindHref = entry.kind === "problems" ? "/problems/" : "/theory/";
   <div class="badge-row">
     <Badge kind="topic" value={entry.topic} />
     <Badge kind="subtopic" value={entry.subtopic} topic={entry.topic} />
+    {exam && <Badge kind="exam" value={entry.exam!} />}
     {section && <Badge kind="theory" value={entry.section!} label={section} />}
     {difficulty && (
       <span class="badge badge--difficulty">

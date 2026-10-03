@@ -2,6 +2,7 @@ import { defineCollection, z } from "astro:content";
 import { glob } from "astro/loaders";
 import {
   DIFFICULTIES,
+  EXAM_TYPES,
   STATUSES,
   SUBTOPICS,
   THEORY_SECTIONS,
@@ -50,6 +51,8 @@ const problems = defineCollection({
       subtopic: z.string(),
       tags: z.array(z.string()).default([]),
       difficulty: z.enum(DIFFICULTIES),
+      /** Which contest or course it came from. Drives /exam/<exam>/. */
+      exam: z.enum(EXAM_TYPES).default("own"),
       /** e.g. "Putnam 2013, B3", "JEE Advanced 2021 Paper 2". Free text. */
       source: z.string().default(""),
       year: z.number().int().optional(),

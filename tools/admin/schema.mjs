@@ -45,6 +45,24 @@ export const DIFFICULTIES = [
   { value: "research", label: "Research flavour (★★★★★)" },
 ];
 
+/**
+ * Where a problem came from. Orthogonal to topic/subtopic — it records the
+ * contest, not the mathematics — and drives the site's /exam/<value>/ pages.
+ */
+export const EXAM_TYPES = [
+  { value: "jee-advanced", label: "JEE Advanced" },
+  { value: "jee-main", label: "JEE Main" },
+  { value: "rmo", label: "RMO" },
+  { value: "inmo", label: "INMO" },
+  { value: "imo", label: "IMO" },
+  { value: "putnam", label: "Putnam" },
+  { value: "integration-bee", label: "Integration Bee" },
+  { value: "undergrad", label: "Undergraduate" },
+  { value: "olympiad-other", label: "Other olympiad" },
+  { value: "textbook", label: "Textbook" },
+  { value: "own", label: "Own problem" },
+];
+
 export const THEORY_SECTIONS = [
   { value: "notes", label: "Notes" },
   { value: "lemma", label: "Lemma" },
@@ -125,6 +143,10 @@ export const PROBLEM_FIELDS = [
   field("difficulty", "Difficulty", "select", {
     required: true,
     options: DIFFICULTIES,
+  }),
+  field("exam", "Exam source", "select", {
+    options: EXAM_TYPES,
+    hint: "Which contest or course it came from. Drives the site's /exam/<name>/ pages.",
   }),
   field("source", "Source line", "text", {
     placeholder: "Integration bee staple",

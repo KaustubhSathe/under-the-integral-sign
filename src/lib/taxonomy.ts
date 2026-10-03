@@ -4,12 +4,16 @@
  * Used by BOTH the static site (src/content.config.ts) and the local admin panel
  * (tools/admin/schema.mjs). Adding a topic here means updating the same list in
  * tools/admin/schema.mjs, then restarting both processes.
- *
- * Shape: topic → subtopic. `topic` is broad and stable; `subtopic` is the
- * narrower bucket that makes a topic browseable once it holds many entries.
- * Entry URLs are /problems|theory/<topic>/<subtopic>/<slug>/.
  */
 
+/**
+ * Broad mathematical area. Every entry names exactly one.
+ *
+ * Currently a single topic, by choice: the vault is Calculus only, and depth
+ * comes from subtopics. Adding a topic back is a one-line change here plus the
+ * matching edit in tools/admin/schema.mjs — the rest of the site (sidebar, topic
+ * pages, admin folder layout) already handles more than one.
+ */
 export const TOPICS = ["calculus"] as const;
 export type Topic = (typeof TOPICS)[number];
 
@@ -47,6 +51,41 @@ export function subtopicsOf(topic: string): readonly string[] {
 export function topicOfSubtopic(subtopic: string): Topic | undefined {
   return TOPICS.find((t) => SUBTOPICS[t].includes(subtopic));
 }
+
+/**
+ * Where a problem comes from. Independent of topic/subtopic: it records the
+ * contest, not the mathematics, and drives the /exam/<slug> browsing pages so
+ * "IMO 2019 P2" and "IMO 2021 P6" group together.
+ */
+export const EXAM_TYPES = [
+  "jee-advanced",
+  "jee-main",
+  "rmo",
+  "inmo",
+  "imo",
+  "putnam",
+  "integration-bee",
+  "undergrad",
+  "olympiad-other",
+  "textbook",
+  "own",
+] as const;
+
+export type ExamType = (typeof EXAM_TYPES)[number];
+
+export const EXAM_LABELS: Record<ExamType, string> = {
+  "jee-advanced": "JEE Advanced",
+  "jee-main": "JEE Main",
+  rmo: "RMO",
+  inmo: "INMO",
+  imo: "IMO",
+  putnam: "Putnam",
+  "integration-bee": "Integration Bee",
+  undergrad: "Undergraduate",
+  "olympiad-other": "Other Olympiad",
+  textbook: "Textbook",
+  own: "Own Problem",
+};
 
 export const DIFFICULTIES = ["warmup", "standard", "hard", "brutal", "research"] as const;
 export type Difficulty = (typeof DIFFICULTIES)[number];
@@ -93,5 +132,6 @@ export const THEORY_SECTION_LABELS: Record<TheorySection, string> = {
 
 /** Helpers shared by the admin panel's validation and the site's display code. */
 export const isTopic = (v: unknown): v is Topic => TOPICS.includes(v as Topic);
+export const isExamType = (v: unknown): v is ExamType => EXAM_TYPES.includes(v as ExamType);
 export const isDifficulty = (v: unknown): v is Difficulty =>
   DIFFICULTIES.includes(v as Difficulty);

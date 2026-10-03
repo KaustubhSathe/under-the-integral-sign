@@ -100,6 +100,23 @@ TypeScript.
 Renaming a file changes its URL, so the admin panel only renames on request. A
 subtopic is a real folder, so changing an entry's subtopic *moves the file*.
 
+### Exam source — the second browsing axis
+
+`exam` is **separate from topic and subtopic**. It records *where a problem came
+from*, not what it is about, and it cuts across the topic tree: the same integral
+might have come from the integration bee or from JEE Advanced.
+
+```
+exam: putnam          → /exam/putnam/        groups every Putnam problem
+exam: integration-bee → /exam/integration-bee/
+```
+
+It drives its own browsing pages and the "Exam sources" section in the sidebar.
+The values are fixed (`jee-advanced`, `jee-main`, `rmo`, `inmo`, `imo`, `putnam`,
+`integration-bee`, `undergrad`, `olympiad-other`, `textbook`, `own`) and the
+build rejects anything else. The free-text `source:` field sits alongside it for
+the exact citation — `exam` is the grouping key, `source` is the label.
+
 > **Do not put a `slug:` field in frontmatter.** Astro's glob loader treats a
 > frontmatter `slug` as the entry's entire id, which collapses the entry's URL
 > to `/problems/<slug>/` and loses the topic/subtopic path. The file path is the
@@ -119,7 +136,8 @@ topic: calculus               # exactly one; sets the first folder level
 subtopic: integrals           # exactly one; must belong to the topic above
 tags: [definite-integrals, symmetry, integration-bee]   # free-form
 difficulty: warmup            # warmup | standard | hard | brutal | research
-source: "Integration bee staple"    # free text — where it came from
+exam: integration-bee         # where it came from; drives /exam/<name>/
+source: "Integration bee staple"    # free text — the exact citation
 year: 2019
 problemNumber: "2"
 summary: "One sentence shown on cards. Plain text."
@@ -252,6 +270,9 @@ restart both processes. The admin panel does not import the site's TypeScript,
 so the two lists are kept in sync by hand. A subtopic must be listed under the
 topic it belongs to — the build rejects an entry whose `subtopic` is not a
 subtopic of its `topic`.
+
+**Exam sources** — edit `EXAM_TYPES`/`EXAM_LABELS` in `src/lib/taxonomy.ts` and
+`EXAM_TYPES` in `tools/admin/schema.mjs`.
 
 **Site identity** — name, tagline, description, author, repo URL:
 `src/lib/site.ts`.

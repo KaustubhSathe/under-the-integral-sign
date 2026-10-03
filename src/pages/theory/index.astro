@@ -1,4 +1,4 @@
-﻿---
+---
 import Base from "../../layouts/Base.astro";
 import EntryList from "../../components/EntryList.astro";
 import { allEntries, countBy, stats } from "../../lib/entries";
@@ -13,15 +13,16 @@ const presentSections = THEORY_SECTIONS.filter((sec) => sections.some((x) => x.k
 
 <Base
   title="Theory"
-  description="Lemmas, theorems and techniques used across the vault â€” statements, proofs, when to reach for each tool, and where it fails."
+  description="Lemmas, theorems and techniques used across the vault — statements, proofs, when to reach for each tool, and where it fails."
   topics={s.topics}
   subtopics={s.subtopics}
+  exams={s.exams}
 >
   <div class="page-head">
     <p class="page-head__eyebrow">Collection</p>
     <h1 class="page-head__title">Theory and techniques</h1>
     <p class="page-head__lede">
-      {pluralize(entries.length, "note")} â€” statements with proofs, the reasoning behind
+      {pluralize(entries.length, "note")} — statements with proofs, the reasoning behind
       them, common failure modes, and worked micro-examples.
     </p>
   </div>

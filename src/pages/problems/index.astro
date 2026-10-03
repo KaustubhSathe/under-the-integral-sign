@@ -6,11 +6,14 @@ import { href, pluralize } from "../../lib/utils";
 import {
   DIFFICULTIES,
   DIFFICULTY_LABELS,
+  EXAM_TYPES,
+  EXAM_LABELS,
   TOPICS,
   TOPIC_LABELS,
   subtopicLabel,
   subtopicsOf,
   type Difficulty,
+  type ExamType,
   type Topic,
 } from "../../lib/taxonomy";
 
@@ -19,6 +22,7 @@ const s = await stats();
 
 const presentTopics = TOPICS.filter((t) => entries.some((e) => e.topic === t));
 const presentDifficulties = DIFFICULTIES.filter((d) => entries.some((e) => e.difficulty === d));
+const presentExams = EXAM_TYPES.filter((ex) => entries.some((e) => e.exam === ex));
 
 /** Subtopics that actually have content, paired with their topic for the URL. */
 const presentSubtopics = TOPICS.flatMap((topic) =>
@@ -33,6 +37,7 @@ const presentSubtopics = TOPICS.flatMap((topic) =>
   description={`${entries.length} competition and undergraduate problems from JEE Advanced, RMO, INMO, IMO, Putnam and integration bee, each with its key idea.`}
   topics={s.topics}
   subtopics={s.subtopics}
+  exams={s.exams}
 >
   <div class="page-head">
     <p class="page-head__eyebrow">Collection</p>
@@ -62,6 +67,17 @@ const presentSubtopics = TOPICS.flatMap((topic) =>
               <option value="">all</option>
               {presentSubtopics.map(({ topic, sub }) => (
                 <option value={sub}>{subtopicLabel(sub)}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        {presentExams.length > 0 && (
+          <label>
+            Source
+            <select name="exam">
+              <option value="">any</option>
+              {presentExams.map((ex) => (
+                <option value={ex}>{EXAM_LABELS[ex as ExamType]}</option>
               ))}
             </select>
           </label>
@@ -108,6 +124,7 @@ const presentSubtopics = TOPICS.flatMap((topic) =>
     const data = new FormData(form);
     const topic = String(data.get("topic") ?? "");
     const subtopic = String(data.get("subtopic") ?? "");
+    const exam = String(data.get("exam") ?? "");
     const difficulty = String(data.get("difficulty") ?? "");
     const q = String(data.get("q") ?? "").trim().toLowerCase();
 
@@ -116,9 +133,10 @@ const presentSubtopics = TOPICS.flatMap((topic) =>
       const title = (card.querySelector(".card__title")?.textContent ?? "").toLowerCase();
       const okTopic = !topic || (card.dataset.topic ?? "") === topic;
       const okSub = !subtopic || (card.dataset.subtopic ?? "") === subtopic;
+      const okExam = !exam || (card.dataset.exam ?? "") === exam;
       const okDiff = !difficulty || card.dataset.difficulty === difficulty;
       const okQ = !q || title.includes(q);
-      const visible = okTopic && okSub && okDiff && okQ;
+      const visible = okTopic && okSub && okExam && okDiff && okQ;
       card.hidden = !visible;
       if (visible) shown++;
     }
@@ -131,10 +149,10 @@ const presentSubtopics = TOPICS.flatMap((topic) =>
   form?.addEventListener("change", apply);
   form?.addEventListener("reset", () => setTimeout(apply, 0));
 
-  // Deep links: /problems/?topic=calculus&subtopic=integrals preselect filters.
+  // Deep links: ?topic=calculus&subtopic=integrals&exam=putnam preselect filters.
   const params = new URLSearchParams(location.search);
   if (form) {
-    for (const key of ["topic", "subtopic", "difficulty", "q"]) {
+    for (const key of ["topic", "subtopic", "exam", "difficulty", "q"]) {
       const value = params.get(key);
       const field = form.elements.namedItem(key);
       if (value && field instanceof HTMLInputElement) field.value = value;

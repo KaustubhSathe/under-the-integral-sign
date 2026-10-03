@@ -1,4 +1,4 @@
-﻿---
+---
 import Base from "../../layouts/Base.astro";
 import EntryList from "../../components/EntryList.astro";
 import { allEntries, stats } from "../../lib/entries";
@@ -21,7 +21,7 @@ const s = await stats();
 ---
 
 <Base
-  title={`Tagged â€œ${tag}â€`}
+  title={`Tagged “${tag}”`}
   description={`${count(entries.length, "entry", "entries")} tagged ${tag}.`}
   topics={s.topics}
   subtopics={s.subtopics}

@@ -25,6 +25,7 @@ export interface EntryRef {
   /** Narrower bucket within the topic, e.g. "integrals". */
   subtopic: string;
   tags: string[];
+  exam?: string;
   source?: string;
   year?: number;
   difficulty?: string;
@@ -54,6 +55,7 @@ function toRef(entry: ProblemEntry | TheoryEntry, kind: Kind): EntryRef {
     topic: d.topic,
     subtopic: d.subtopic,
     tags: d.tags ?? [],
+    exam: isProblem ? entry.data.exam : undefined,
     source: isProblem ? entry.data.source : undefined,
     year: isProblem ? entry.data.year : undefined,
     difficulty: isProblem ? entry.data.difficulty : undefined,
@@ -118,6 +120,7 @@ export interface VaultStats {
   theory: number;
   topics: Counted[];
   subtopics: Counted[];
+  exams: Counted[];
   tags: Counted[];
   byDifficulty: Counted[];
   solved: number;
@@ -131,6 +134,7 @@ export async function stats(): Promise<VaultStats> {
     theory: entries.length - problems.length,
     topics: countBy(entries, (e) => [e.topic]),
     subtopics: countBy(entries, (e) => [e.subtopic]),
+    exams: countBy(problems, (e) => (e.exam ? [e.exam] : [])),
     tags: countBy(entries, (e) => e.tags),
     byDifficulty: countBy(problems, (e) => (e.difficulty ? [e.difficulty] : [])),
     solved: problems.filter((e) => e.status === "polished").length,

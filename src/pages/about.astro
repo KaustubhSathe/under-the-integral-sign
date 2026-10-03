@@ -1,4 +1,4 @@
-﻿---
+---
 import Base from "../layouts/Base.astro";
 import { stats } from "../lib/entries";
 import { SITE } from "../lib/site";
@@ -10,9 +10,10 @@ const hasContent = s.problems + s.theory > 0;
 
 <Base
   title="About"
-  description={`About ${SITE.name} â€” what it is, how it is built, and how each entry is written up.`}
+  description={`About ${SITE.name} — what it is, how it is built, and how each entry is written up.`}
   topics={s.topics}
   subtopics={s.subtopics}
+  exams={s.exams}
 >
   <div class="page-head">
     <p class="page-head__eyebrow">Colophon</p>
@@ -26,8 +27,8 @@ const hasContent = s.problems + s.theory > 0;
   <div class="prose">
     <h2>What is here</h2>
     <p>
-      Competition material â€” JEE Advanced, RMO, INMO, IMO, Putnam, integration bee
-      â€” alongside undergraduate-level theory. Every problem entry records the
+      Competition material — JEE Advanced, RMO, INMO, IMO, Putnam, integration bee
+      — alongside undergraduate-level theory. Every problem entry records the
       source, the <strong>key idea</strong> that unlocks it, and a complete
       solution. Every theory entry records a statement, a proof, when to reach for
       the tool, and where it fails.
@@ -50,7 +51,7 @@ const hasContent = s.problems + s.theory > 0;
       <li>
         <strong>Write down what is wrong or unfinished.</strong> If a proof step is
         hand-waved, if a transcription looks inconsistent with the official source,
-        if a construction was abandoned halfway â€” that goes in the entry, not in a
+        if a construction was abandoned halfway — that goes in the entry, not in a
         silent rewrite. The gaps are information.
       </li>
     </ol>
@@ -76,7 +77,7 @@ const hasContent = s.problems + s.theory > 0;
 
     <h2>Corrections and sources</h2>
     <p>
-      Problems remain the property of their original sources â€” contests, textbooks
+      Problems remain the property of their original sources — contests, textbooks
       and their authors. What is mine here is the exposition: the choice of key
       idea, the solutions, and the commentary. Where a problem is transcribed from
       a competition, the source is named, and any doubt about the transcription is
@@ -85,7 +86,7 @@ const hasContent = s.problems + s.theory > 0;
     <p>
       Found an error? The repository is at{" "}
       <a href={SITE.repo} rel="noopener noreferrer">{SITE.repo.replace(/^https?:\/\//, "")}</a>
-      â€” an issue or a pull request is welcome.
+      — an issue or a pull request is welcome.
     </p>
 
     {!hasContent && (
