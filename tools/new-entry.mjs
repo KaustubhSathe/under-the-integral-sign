@@ -150,7 +150,13 @@ try {
         ].join("\n");
 
   await fs.mkdir(path.dirname(abs), { recursive: true });
-  await fs.writeFile(abs, `---\n${toYaml({ ...result.data, slug })}\n---\n\n${body}`, "utf8");
+  /*
+   * No `slug` in the frontmatter. Astro's glob loader treats one as the entry's
+   * entire id, which collapses the URL to /problems/<slug>/ and drops the topic
+   * segment. The path already says where the file is; a slug field would only
+   * contradict it.
+   */
+  await fs.writeFile(abs, `---\n${toYaml(result.data)}\n---\n\n${body}`, "utf8");
 
   console.log(`\nCreated content/${kind}/${rel}\n`);
   console.log("Next:");

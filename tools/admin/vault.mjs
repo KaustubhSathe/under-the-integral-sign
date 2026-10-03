@@ -139,8 +139,20 @@ export async function writeEntry(kind, relPath, frontmatter, body) {
   const { abs, rel } = resolveContentFile(kind, relPath);
   await fs.mkdir(path.dirname(abs), { recursive: true });
 
-  // A tiny header comment helps when reading the raw file on GitHub.
-  const yaml = toYaml(frontmatter);
+  /*
+   * Strip `slug` here, at the single choke point every write goes through.
+   *
+   * Astro's glob loader treats a frontmatter slug as the entry's entire id, so
+   * writing one collapses the URL from /problems/<topic>/<slug>/ to
+   * /problems/<slug>/ and silently drops the topic segment. That has now been
+   * introduced three separate times by three different call sites, so removing it
+   * from the payload is more reliable than remembering not to add it.
+   *
+   * The file path is the only thing that says where an entry lives.
+   */
+  const { slug: _discarded, ...fields } = frontmatter ?? {};
+
+  const yaml = toYaml(fields);
   const text = `---\n${yaml}\n---\n\n${String(body ?? "").trimStart()}`;
   const normalised = text.endsWith("\n") ? text : `${text}\n`;
   await fs.writeFile(abs, normalised, "utf8");

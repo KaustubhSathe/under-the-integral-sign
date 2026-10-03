@@ -417,7 +417,15 @@ app.post("/api/save", requireAuth, async (req, res) => {
       });
     }
 
-    const written = await writeEntry(kind, targetPath, { ...data, slug }, body);
+    /*
+     * Write `data`, NOT `{ ...data, slug }`.
+     *
+     * The slug is where the file lives, not a field. Astro's glob loader treats a
+     * frontmatter `slug` as the entry's entire id, which collapses the URL to
+     * /problems/<slug>/ and drops the topic segment — adding one here is what
+     * flattened a newly saved entry to /problems/log-over-semicircle-integral/.
+     */
+    const written = await writeEntry(kind, targetPath, data, body);
 
     // A topic change moves the file between folders.
     if (originalPath && originalPath !== written) {
@@ -425,7 +433,7 @@ app.post("/api/save", requireAuth, async (req, res) => {
     }
 
     const stat = await fs.stat(path.join(ROOT, ENTRY_KINDS[kind].dir, written));
-    res.json({ ok: true, path: written, mtime: stat.mtimeMs, frontmatter: { ...data, slug } });
+    res.json({ ok: true, path: written, mtime: stat.mtimeMs, frontmatter: data });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
