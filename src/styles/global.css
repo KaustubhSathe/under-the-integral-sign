@@ -67,6 +67,20 @@
    */
   --prose-max: 104ch;
   --gutter: clamp(1rem, 4vw, 2.5rem);
+  /*
+   * The sticky header's real height, measured at 59px: its 3.5rem min-height
+   * plus the 1px rule and the line-height of the brand text. Anything that
+   * sticks below the header offsets by this rather than by 3.5rem, or it tucks
+   * a few pixels under the header as you scroll.
+   */
+  --header-h: 3.6875rem;
+  /*
+   * Header + footer together, measured at 59px + 109px. The sidebar uses this to
+   * size itself to exactly fill the gap between them, so a short page does not
+   * leave the panel ending partway down. If the header grows (a longer tagline
+   * wrapping, say) or the footer's padding changes, re-measure both.
+   */
+  --chrome-h: 10.5rem;
   --radius: 10px;
   --radius-sm: 6px;
 
@@ -707,14 +721,24 @@ tbody tr:hover {
   background: var(--bg-sunken);
 }
 @media (min-width: 62rem) {
+  /*
+   * The panel fills its grid column full height. Three things are at work:
+   *
+   *  1. no `align-self: start` — that would shrink the panel to the height of
+   *     the nav and leave the rule and background stopping early;
+   *  2. `min-height` so that on a SHORT page the row still grows to fill the
+   *     space between the header and the footer. Without it the panel stops
+   *     wherever the article happens to end;
+   *  3. the nav inside is sticky and scrolls on its own, so the links stay
+   *     reachable while the article scrolls.
+   *
+   * --chrome-h is the header + footer + their borders, measured at 59px + 109px.
+   * If you change the header height or the footer padding, update it, or the
+   * panel will end slightly short or overshoot past the footer.
+   */
   .site-sidebar {
     display: block;
-    position: sticky;
-    top: 3.5rem;
-    align-self: start;
-    max-height: calc(100vh - 3.5rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
+    min-height: calc(100vh - var(--chrome-h));
   }
 }
 /* Mobile: the same nav is revealed as a panel under the header. */
@@ -729,6 +753,21 @@ tbody tr:hover {
 }
 .site-sidebar__inner {
   padding: 1.4rem 1.1rem 3rem;
+}
+@media (min-width: 62rem) {
+  /*
+   * Sticky within the full-height panel, so the links stay reachable while the
+   * article scrolls but the panel behind them never ends partway down. The
+   * offset matches --header-h, not the 3.5rem min-height, or a sliver of the
+   * nav tucks under the header as you scroll.
+   */
+  .site-sidebar__inner {
+    position: sticky;
+    top: var(--header-h);
+    max-height: calc(100vh - var(--header-h));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
 .nav-group + .nav-group {
   margin-top: 1.5rem;
@@ -1290,10 +1329,15 @@ details.solution[open] > summary::before {
   }
   .prose-with-toc .toc {
     position: sticky;
-    top: 5rem;
+    /*
+     * Offset by the real header height rather than a round number, so the TOC
+     * sits flush under the header with no sliver showing through. The small
+     * extra on max-height keeps the last entry reachable once it sticks.
+     */
+    top: calc(var(--header-h) + 1.25rem);
     order: 2;
     width: var(--toc-width);
-    max-height: calc(100vh - 7rem);
+    max-height: calc(100vh - var(--header-h) - 2rem);
     overflow-y: auto;
     margin: 0;
   }
