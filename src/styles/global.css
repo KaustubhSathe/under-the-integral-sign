@@ -1458,7 +1458,12 @@ details.solution[open] > summary::before {
 .site-footer__inner {
   max-width: 84rem;
   margin: 0 auto;
-  padding: 1.5rem var(--gutter) 2.5rem;
+  /*
+   * Kept deliberately tight: because the desktop shell pins the footer in view
+   * (see .shell), every pixel here is a pixel the article cannot use. The bottom
+   * value only used to be larger because the footer scrolled away with the page.
+   */
+  padding: 1rem var(--gutter) 1.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem 1.5rem;
