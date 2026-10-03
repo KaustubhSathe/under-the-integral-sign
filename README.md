@@ -207,8 +207,41 @@ process bound to `127.0.0.1` on your machine.
   shells out to your real `git`, so your existing credentials (SSH agent or
   credential manager) are used.
 
+**New** offers two ways to start an entry:
+
+| | |
+|---|---|
+| **Manual entry** | Pick the kind and topic, type a title, get an empty template. |
+| **AI entry** | Describe the entry (or attach a photo of a problem) and DeepSeek drafts the frontmatter and the body. |
+
+### AI entry
+
+Set `DEEPSEEK_API_KEY` in `.env` to enable it. The key is read by the admin
+**server** and is never sent to the browser; `/api/ai-status` reports only
+whether a key exists. Without a key the option still appears and says so —
+manual entry is unaffected.
+
+It uses `deepseek-flash`, which is **DeepSeek-V4.1-Flash** and the only current
+DeepSeek model that accepts images. Attach a JPEG, PNG, GIF or WebP (up to 8 MB)
+and the model reads the problem out of it; the photo is used for that request
+only and is not saved into the vault.
+
+Three things worth knowing:
+
+- **The draft always opens in the editor; nothing is saved for you.** Model maths
+  needs a human pass, and this is a vault of mathematics.
+- **The model is asked for `title`, `summary`, `keyIdea`, `answer`, `tags`,
+  `difficulty`/`section`, optionally `exam`, and the Markdown body.** Values are
+  checked against the taxonomy before being filled in, and an `exam` is only
+  accepted when the model is confident — a wrong competition label is worse than
+  a blank one.
+- **The subtopic is a folder, not a field.** The content schema has no `subtopic`
+  key; an entry's topic is its folder and its URL segment. The panel derives the
+  folder from the topic so the tree can be split later without a migration.
+
 **If the preview is blank**, the Astro dev server is not running:
-`pnpm dev` in another terminal.
+`pnpm dev` in another terminal. The pane now says this explicitly rather than
+leaving you to guess.
 
 **If push fails with an authentication error**, the panel cannot answer a
 password prompt. Run `git push` once in a terminal so Windows Credential

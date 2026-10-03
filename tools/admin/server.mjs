@@ -20,10 +20,12 @@ import {
   ENTRY_KINDS,
   MARKDOWN_HELP,
   TOPICS,
+  SUBTOPICS,
   DIFFICULTIES,
   EXAM_TYPES,
   THEORY_SECTIONS,
   STATUSES,
+  subtopicsFor,
   validate,
 } from "./schema.mjs";
 import {
@@ -39,6 +41,7 @@ import {
   slugify,
   writeEntry,
 } from "./vault.mjs";
+import { aiConfigured, aiModel, generateEntry } from "./ai.mjs";
 import * as git from "./git.mjs";
 
 /* ------------------------------------------------------------------- config -- */
@@ -247,6 +250,8 @@ app.get("/api/bootstrap", requireAuth, async (_req, res) => {
         ]),
       ),
       topics: TOPICS,
+      /** topic → folder names, so the client can place a new file. Not frontmatter. */
+      subtopicsByTopic: SUBTOPICS,
       difficulties: DIFFICULTIES,
       examTypes: EXAM_TYPES,
       theorySections: THEORY_SECTIONS,
@@ -275,6 +280,33 @@ app.get("/api/entry", requireAuth, async (req, res) => {
     res.json({ ...entry, mtime: stat.mtimeMs });
   } catch (err) {
     res.status(404).json({ error: err.message });
+  }
+});
+
+/* --------------------------------------------------------------------- ai -- */
+
+app.get("/api/ai-status", requireAuth, (_req, res) => {
+  // The key itself is never sent to the client, only whether one is present.
+  res.json({ configured: aiConfigured(), model: aiModel() });
+});
+
+app.post("/api/generate", requireAuth, async (req, res) => {
+  const { kind, prompt, image } = req.body ?? {};
+  if (!ENTRY_KINDS[kind]) return res.status(400).json({ error: "Unknown kind." });
+  try {
+    const result = await generateEntry({
+      kind,
+      prompt: String(prompt ?? ""),
+      image: image ? String(image) : null,
+      topics: TOPICS.map((t) => t.value),
+      difficulties: DIFFICULTIES.map((d) => d.value),
+      exams: EXAM_TYPES.map((e) => e.value),
+      theorySections: THEORY_SECTIONS.map((s) => s.value),
+    });
+    res.json(result);
+  } catch (err) {
+    // The message is written for a human, so it is safe to show as-is.
+    res.status(502).json({ error: err.message });
   }
 });
 

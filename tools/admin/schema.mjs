@@ -14,6 +14,24 @@
 /** Topics, mirroring TOPICS in src/lib/taxonomy.ts. One for now: Integrals. */
 export const TOPICS = [{ value: "integrals", label: "Integrals" }];
 
+/**
+ * Folder inside a topic, used when placing a new file:
+ * content/<kind>/<topic>/<subtopic>/<slug>.md
+ *
+ * This is NOT frontmatter. The content schema has no `subtopic` field — an
+ * entry's topic is its folder and its URL segment — so this only decides where
+ * the file lands. It exists so a topic can be split into folders later without
+ * every entry sitting in one flat directory.
+ */
+export const SUBTOPICS = {
+  integrals: [{ value: "integrals", label: "Integrals" }],
+};
+
+/** Subtopics for a topic, as {value,label}[]. */
+export function subtopicsFor(topic) {
+  return SUBTOPICS[topic] ?? [];
+}
+
 export const DIFFICULTIES = [
   { value: "warmup", label: "Warm-up (★)" },
   { value: "standard", label: "Standard (★★)" },

@@ -635,6 +635,97 @@ input[type="checkbox"] {
   justify-content: flex-end;
   margin-top: 1rem;
 }
+.modal__intro {
+  margin-top: 0;
+}
+/* The new-entry dialog carries an image picker and a status line, so it needs
+   more room than the small confirm dialogs. */
+#newDialog {
+  width: min(42rem, 92vw);
+}
+#newDialog textarea {
+  width: 100%;
+}
+
+/* --------------------------------------------------- entry mode chooser -- */
+.modebar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+}
+.modebar__opt {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+.modebar__opt:hover {
+  border-color: var(--text-3);
+}
+.modebar__opt.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg));
+}
+.modebar__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.modebar__sub {
+  font-size: 0.76rem;
+  color: var(--text-3);
+}
+
+/* ------------------------------------------------------- ai photo + status -- */
+.aiimage {
+  margin-top: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: var(--bg);
+}
+.aiimage img {
+  display: block;
+  max-width: 100%;
+  max-height: 14rem;
+  border-radius: 6px;
+  margin: 0 auto;
+}
+.aiimage__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-3);
+}
+.aistatus {
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  border: 1px solid var(--border-2);
+  background: var(--bg);
+  color: var(--text-2);
+}
+.aistatus--ok {
+  border-color: #33543a;
+}
+.aistatus--warn {
+  border-color: #6b5a32;
+}
+.aistatus--error {
+  border-color: #6b3232;
+  color: var(--text);
+}
 
 .toast {
   position: fixed;

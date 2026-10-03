@@ -146,9 +146,40 @@
     <!-- New-entry dialog                                                    -->
     <!-- ------------------------------------------------------------------ -->
     <dialog class="modal" id="newDialog">
-      <form method="dialog" class="modal__body" id="newForm">
-        <h2>New entry</h2>
-        <p>Pick what you are writing. The file is created once you save.</p>
+      <form class="modal__body" id="newForm" novalidate>
+        <h2 id="newDialogTitle">New entry</h2>
+        <p class="modal__intro">
+          Write it yourself, or describe it and have DeepSeek draft the entry for
+          you to review.
+        </p>
+
+        <!-- Entry mode. The AI panel is revealed by choosing the second option. -->
+        <div class="modebar" role="radiogroup" aria-label="How to create the entry">
+          <button
+            type="button"
+            class="modebar__opt is-active"
+            id="modeManual"
+            role="radio"
+            aria-checked="true"
+            data-mode="manual"
+          >
+            <span class="modebar__title">Manual entry</span>
+            <span class="modebar__sub">Start from an empty template</span>
+          </button>
+          <button
+            type="button"
+            class="modebar__opt"
+            id="modeAi"
+            role="radio"
+            aria-checked="false"
+            data-mode="ai"
+          >
+            <span class="modebar__title">AI entry</span>
+            <span class="modebar__sub">Draft from a prompt or a photo</span>
+          </button>
+        </div>
+        <input type="hidden" id="newMode" value="manual" />
+
         <div class="field">
           <div class="field__label">Kind</div>
           <select id="newKind">
@@ -156,18 +187,59 @@
             <option value="theory">Theory note</option>
           </select>
         </div>
-        <div class="field">
+
+        <!-- Shown only for manual entries: the title is required up front. -->
+        <div class="field" id="newTitleField">
           <div class="field__label">Title</div>
-          <input type="text" id="newTitle" placeholder="e.g. Nesbitt's inequality via Engel form" />
-          <div class="field__hint">Used for the filename slug and the page title. Editable later.</div>
+          <input type="text" id="newTitle" placeholder="e.g. A hundredth power of tan" />
+          <div class="field__hint">Used for the filename and the page title. Editable later.</div>
         </div>
+
         <div class="field">
-          <div class="field__label">Primary topic</div>
+          <div class="field__label">Topic</div>
           <select id="newTopic"></select>
+          <div class="field__hint">
+            Sets the folder and the entry's URL. The subtopic is filled in for you.
+          </div>
         </div>
+
+        <!-- ---------------------------------------------------------- AI -- -->
+        <div id="aiPanel" hidden>
+          <div class="field">
+            <div class="field__label">What should the entry be about?</div>
+            <textarea
+              id="aiPrompt"
+              rows="4"
+              placeholder="Paste the problem, or describe what you want written up. You can also attach a photo of a problem and leave this short."
+            ></textarea>
+            <div class="field__hint">
+              The problem statement works well. If you attach a photo, just say what
+              you want done with it.
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field__label">Photo (optional)</div>
+            <input type="file" id="aiImage" accept="image/png,image/jpeg,image/gif,image/webp" />
+            <div class="field__hint">
+              JPEG, PNG, GIF or WebP, up to 8 MB. The image is sent to DeepSeek to
+              read the problem from; it is not saved into the vault.
+            </div>
+            <div class="aiimage" id="aiImagePreview" hidden>
+              <img id="aiImageThumb" alt="The photo that will be sent to DeepSeek" />
+              <div class="aiimage__meta">
+                <span id="aiImageInfo"></span>
+                <button type="button" class="btn btn--sm" id="aiImageClear">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="aistatus" id="aiStatus" hidden></div>
+        </div>
+
         <div class="modal__actions">
           <button class="btn" value="cancel" type="button" id="newCancel">Cancel</button>
-          <button class="btn btn--primary" value="create" type="submit">Create</button>
+          <button class="btn btn--primary" value="create" type="submit" id="newSubmit">Create</button>
         </div>
       </form>
     </dialog>

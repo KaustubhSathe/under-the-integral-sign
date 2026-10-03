@@ -538,6 +538,34 @@ $("#body").addEventListener("input", markDirty);
 
 /* ------------------------------------------------------------- new / delete -- */
 
+/**
+ * New-entry dialog: two modes.
+ *
+ *  - Manual: pick kind/topic and a title, get an empty template.
+ *  - AI: describe the entry or attach a photo, DeepSeek drafts the frontmatter
+ *    and the body, and the result opens in the normal editor for review. Nothing
+ *    is written to disk until Save is pressed.
+ */
+const ai = {
+  /** data: URL of the attached photo, or null. */
+  image: null,
+  imageName: "",
+  busy: false,
+  /** null = not asked yet, so the status line is fetched once per session. */
+  configured: null,
+  model: "",
+};
+
+/**
+ * The vault has a single topic, so the folder beneath it is derived rather than
+ * asked for. This is a PATH segment, not frontmatter: the content schema has no
+ * `subtopic` field, and writing one would be a lie about the entry's shape.
+ */
+function soleSubtopicFor(topic) {
+  const subs = state.boot.schema.subtopicsByTopic?.[topic] ?? [];
+  return subs[0]?.value ?? topic;
+}
+
 $("#newBtn").addEventListener("click", () => openNewDialog($("#newKind").value || "problems"));
 $$("[data-new-kind]").forEach((btn) =>
   btn.addEventListener("click", () => openNewDialog(btn.dataset.newKind)),
@@ -547,24 +575,136 @@ function openNewDialog(kind) {
   $("#newKind").value = kind;
   $("#newTitle").value = "";
   $("#newTopic").value = state.boot.schema.topics[0].value;
+  $("#aiPrompt").value = "";
+  clearAiImage();
+  setNewMode("manual");
   $("#newDialog").showModal();
   $("#newTitle").focus();
+  // Ask the server once whether a key is configured, so the AI tab can say so
+  // honestly rather than failing only after a prompt has been written.
+  void loadAiStatus();
 }
+
+async function loadAiStatus() {
+  if (ai.configured !== null) return;
+  try {
+    const s = await api("/api/ai-status");
+    ai.configured = Boolean(s.configured);
+    ai.model = s.model ?? "";
+  } catch {
+    ai.configured = false;
+  }
+  renderAiStatus();
+}
+
+function renderAiStatus() {
+  const box = $("#aiStatus");
+  if ($("#newMode").value !== "ai") {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  if (ai.configured) {
+    box.className = "aistatus aistatus--ok";
+    box.textContent = `DeepSeek is configured (${ai.model}). The draft opens in the editor for you to check before saving.`;
+  } else {
+    box.className = "aistatus aistatus--warn";
+    box.textContent =
+      "No DEEPSEEK_API_KEY found. Add it to .env and restart the admin panel to use AI entry. Manual entry still works.";
+  }
+}
+
+function setNewMode(mode) {
+  $("#newMode").value = mode;
+  const isAi = mode === "ai";
+  $$("#newForm .modebar__opt").forEach((btn) => {
+    const on = btn.dataset.mode === mode;
+    btn.classList.toggle("is-active", on);
+    btn.setAttribute("aria-checked", String(on));
+  });
+  $("#aiPanel").hidden = !isAi;
+  // With AI the title comes back from the model, so the field is not needed.
+  $("#newTitleField").hidden = isAi;
+  $("#newSubmit").textContent = isAi ? "Generate draft" : "Create";
+  $("#newDialogTitle").textContent = isAi ? "New entry — AI draft" : "New entry";
+  renderAiStatus();
+  if (!isAi) $("#newTitle").focus();
+}
+
+$$("#newForm .modebar__opt").forEach((btn) =>
+  btn.addEventListener("click", () => setNewMode(btn.dataset.mode)),
+);
+
+/* ------------------------------------------------------------- photo input -- */
+
+$("#aiImage").addEventListener("change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return clearAiImage();
+
+  const MAX = 8 * 1024 * 1024;
+  if (file.size > MAX) {
+    toast(`${file.name} is ${(file.size / 1048576).toFixed(1)} MB; the limit is 8 MB.`, "err", 6000);
+    return clearAiImage();
+  }
+  if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) {
+    toast("Use a JPEG, PNG, GIF or WebP image.", "err", 6000);
+    return clearAiImage();
+  }
+
+  try {
+    ai.image = await readAsDataUrl(file);
+    ai.imageName = file.name;
+    $("#aiImageThumb").src = ai.image;
+    $("#aiImageInfo").textContent = `${file.name} — ${(file.size / 1048576).toFixed(2)} MB`;
+    $("#aiImagePreview").hidden = false;
+  } catch (err) {
+    toast(`Could not read that file: ${err.message}`, "err");
+    clearAiImage();
+  }
+});
+
+$("#aiImageClear").addEventListener("click", clearAiImage);
+
+function clearAiImage() {
+  ai.image = null;
+  ai.imageName = "";
+  const input = $("#aiImage");
+  if (input) input.value = "";
+  const preview = $("#aiImagePreview");
+  if (preview) preview.hidden = true;
+  const thumb = $("#aiImageThumb");
+  if (thumb) thumb.removeAttribute("src");
+  const info = $("#aiImageInfo");
+  if (info) info.textContent = "";
+}
+
+const readAsDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = () => reject(new Error("read failed"));
+    r.readAsDataURL(file);
+  });
+
+/* ------------------------------------------------------------------ submit -- */
 
 $("#newCancel").addEventListener("click", () => $("#newDialog").close());
 
 $("#newForm").addEventListener("submit", async (event) => {
-  if (event.submitter?.value === "cancel") return;
   event.preventDefault();
 
+  const mode = $("#newMode").value;
   const kind = $("#newKind").value;
-  const title = $("#newTitle").value.trim() || "Untitled";
   const topic = $("#newTopic").value;
 
+  if (mode === "ai") return generateAiDraft({ kind, topic });
+
+  const title = $("#newTitle").value.trim() || "Untitled";
   if (!(await confirmDiscard())) return;
   $("#newDialog").close();
 
   // Start from an empty frontmatter bag, then let the schema defaults apply.
+  // No `subtopic` key: it is a folder, not a field.
   state.current = {
     kind,
     path: "",
@@ -579,6 +719,88 @@ $("#newForm").addEventListener("submit", async (event) => {
   $("#status").textContent = "Not saved yet — press Save to create the file.";
   $("#body").focus();
 });
+
+/**
+ * Send the prompt (and any photo) to the server, then open the result in the
+ * editor. Deliberately does NOT save: model output always needs a human pass,
+ * especially the mathematics.
+ */
+async function generateAiDraft({ kind, topic }) {
+  const prompt = $("#aiPrompt").value.trim();
+  if (!prompt && !ai.image) {
+    toast("Describe the entry, or attach a photo of the problem.", "warn", 6000);
+    return;
+  }
+  if (ai.busy) return;
+
+  const button = $("#newSubmit");
+  const label = button.textContent;
+  const status = $("#aiStatus");
+  ai.busy = true;
+  button.disabled = true;
+  button.textContent = "Generating…";
+  status.hidden = false;
+  status.className = "aistatus";
+  status.textContent = ai.image ? "Reading the photo and drafting the entry…" : "Drafting the entry…";
+
+  try {
+    const res = await api("/api/generate", {
+      method: "POST",
+      body: { kind, prompt, image: ai.image },
+    });
+    const d = res.entry ?? {};
+
+    if (!(await confirmDiscard())) return;
+    $("#newDialog").close();
+
+    const title = d.title || "Untitled";
+    // No `subtopic`: the schema has no such field. `topic` alone is the contract.
+    const fm = { title, topic, status: "stub" };
+    if (d.summary) fm.summary = d.summary;
+    if (d.keyIdea) fm.keyIdea = d.keyIdea;
+    if (d.answer) fm.answer = d.answer;
+    if (Array.isArray(d.tags) && d.tags.length) fm.tags = d.tags;
+
+    if (kind === "problems") {
+      const valid = state.boot.schema.difficulties.map((x) => x.value);
+      if (valid.includes(d.difficulty)) fm.difficulty = d.difficulty;
+      // Only accept an exam the schema knows, and never override "own" silently:
+      // a wrong competition label is worse than a blank one.
+      const exams = state.boot.schema.examTypes.map((x) => x.value);
+      if (exams.includes(d.exam) && d.exam !== "own") fm.exam = d.exam;
+    } else {
+      const valid = state.boot.schema.theorySections.map((x) => x.value);
+      if (valid.includes(d.section)) fm.section = d.section;
+    }
+
+    state.current = {
+      kind,
+      path: "",
+      isNew: true,
+      mtime: null,
+      frontmatter: fm,
+      body: d.body || defaultBody(kind, title),
+    };
+    state.dirty = true;
+    renderForm();
+    setSaveState("unsaved");
+
+    const used = res.usage?.outputTokens;
+    $("#status").textContent =
+      "AI draft ready — check the maths, then press Save to create the file." +
+      (used ? ` (${used} output tokens)` : "");
+    toast("Draft generated. Review it before saving.", "ok", 6000);
+    $("#body").focus();
+  } catch (err) {
+    status.className = "aistatus aistatus--error";
+    status.textContent = err.message;
+    toast(err.message, "err", 8000);
+  } finally {
+    ai.busy = false;
+    button.disabled = false;
+    button.textContent = label;
+  }
+}
 
 function defaultBody(kind, title) {
   if (kind === "theory") {
