@@ -846,18 +846,42 @@ function previewUrlFor(cur) {
   return `${state.boot.config.devUrl}/${cur.kind}/${slug}/`;
 }
 
+/**
+ * Explain what the preview pane is showing, and why it might be empty.
+ *
+ * `state.devUp` comes from probePreviewServer(). It is checked FIRST and the
+ * messages are distinct on purpose: telling someone to "run pnpm dev" when it is
+ * already running sends them chasing a problem that does not exist, and hiding
+ * the pane when the server is down avoids an unexplained connection error inside
+ * the iframe.
+ */
 function refreshPreview() {
   const cur = state.current;
   const iframe = $("#preview");
   const empty = $("#previewEmpty");
   const url = previewUrlFor(cur);
 
-  if (!url) {
+  const show = (message) => {
     iframe.hidden = true;
+    iframe.removeAttribute("src");
     empty.hidden = false;
-    empty.textContent = cur
-      ? "Save the entry first — the preview shows the file that is on disk."
-      : "Select an entry, or run pnpm dev in another terminal to see rendered pages here.";
+    empty.textContent = message;
+  };
+
+  if (!state.devUp) {
+    show(
+      "The Astro dev server is not running, so there is nothing to render. " +
+        "Run `pnpm dev` in another terminal, then press Refresh.",
+    );
+    return;
+  }
+
+  if (!url) {
+    show(
+      cur
+        ? "Unsaved entry — save it and the rendered page will appear here."
+        : "Select an entry from the list to see its rendered page here.",
+    );
     return;
   }
 
