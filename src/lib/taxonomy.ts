@@ -2,37 +2,25 @@
  * The single source of truth for the vault's taxonomy.
  *
  * Used by BOTH the static site (src/content.config.ts) and the local admin panel
- * (tools/admin/schema.mjs). If you add a topic here, restart the admin panel and
- * the Astro dev server so both pick it up.
+ * (tools/admin/schema.mjs). If you change a list here, make the matching change
+ * in tools/admin/schema.mjs and restart both processes.
  */
 
-/** Broad mathematical area. Every entry names exactly one primary topic. */
-export const TOPICS = [
-  "algebra",
-  "number-theory",
-  "combinatorics",
-  "geometry",
-  "inequalities",
-  "analysis",
-  "linear-algebra",
-  "abstract-algebra",
-  "topology",
-  "probability",
-] as const;
+/**
+ * Topics. Every entry names exactly one, and the topic is both its folder and its
+ * URL segment: content/problems/integrals/foo.md -> /problems/integrals/foo/
+ *
+ * One topic for now — Integrals — because that is what is being studied. Adding
+ * another is a one-line change here plus the matching edit in
+ * tools/admin/schema.mjs; the sidebar, topic pages and admin folder layout all
+ * already handle several.
+ */
+export const TOPICS = ["integrals"] as const;
 
 export type Topic = (typeof TOPICS)[number];
 
 export const TOPIC_LABELS: Record<Topic, string> = {
-  algebra: "Algebra",
-  "number-theory": "Number Theory",
-  combinatorics: "Combinatorics",
-  geometry: "Geometry",
-  inequalities: "Inequalities",
-  analysis: "Analysis & Calculus",
-  "linear-algebra": "Linear Algebra",
-  "abstract-algebra": "Abstract Algebra",
-  topology: "Topology",
-  probability: "Probability",
+  integrals: "Integrals",
 };
 
 /**

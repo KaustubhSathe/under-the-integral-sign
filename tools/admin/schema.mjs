@@ -11,18 +11,8 @@
  * fields. `kind: "problems"` and `kind: "theory"` differ, so both lists exist.
  */
 
-export const TOPICS = [
-  { value: "algebra", label: "Algebra" },
-  { value: "number-theory", label: "Number Theory" },
-  { value: "combinatorics", label: "Combinatorics" },
-  { value: "geometry", label: "Geometry" },
-  { value: "inequalities", label: "Inequalities" },
-  { value: "analysis", label: "Analysis & Calculus" },
-  { value: "linear-algebra", label: "Linear Algebra" },
-  { value: "abstract-algebra", label: "Abstract Algebra" },
-  { value: "topology", label: "Topology" },
-  { value: "probability", label: "Probability" },
-];
+/** Topics, mirroring TOPICS in src/lib/taxonomy.ts. One for now: Integrals. */
+export const TOPICS = [{ value: "integrals", label: "Integrals" }];
 
 export const DIFFICULTIES = [
   { value: "warmup", label: "Warm-up (★)" },

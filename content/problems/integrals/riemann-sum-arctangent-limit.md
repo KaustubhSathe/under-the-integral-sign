@@ -1,7 +1,6 @@
 ---
 title: "A Riemann sum that collapses to π/4"
-topic: analysis
-topics: [analysis, inequalities]
+topic: integrals
 tags: [riemann-sums, limits, telescoping, definite-integrals]
 difficulty: standard
 exam: jee-advanced
@@ -10,7 +9,7 @@ year: 2013
 summary: "The summand is a Riemann sum in disguise; recognising the sampling points turns the limit into an arctangent integral."
 keyIdea: "Write the summand as (1/n)·f(k/n) so the limit becomes ∫₀¹ f(x) dx, then substitute x = tan θ."
 answer: "pi/4"
-related: [cauchy-schwarz-engel-form, generating-functions-first-look]
+related: [tan-power-symmetry-integral]
 status: polished
 date: 2025-01-12
 ---

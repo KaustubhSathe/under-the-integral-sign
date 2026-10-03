@@ -1,7 +1,6 @@
 ---
 title: "A hundredth power of tan, and why the answer is still π/4"
-topic: analysis
-topics: [analysis, inequalities]
+topic: integrals
 tags: [definite-integrals, symmetry, integration-bee, king-property, trigonometric-substitution]
 difficulty: warmup
 exam: integration-bee

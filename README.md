@@ -52,13 +52,11 @@ in `dev`.
 ```
 content/                      ← YOUR CONTENT. Everything else is machinery.
   problems/
-    analysis/                 ← the topic folder becomes part of the URL
+    integrals/                ← the topic folder becomes part of the URL
       riemann-sum-arctangent-limit.md
-    number-theory/
-      divisors-of-2m-plus-1.md
-  theory/
-    inequalities/
-      cauchy-schwarz-engel-form.md
+      tan-power-symmetry-integral.md
+  theory/                     ← same shape (currently empty)
+    integrals/
 
 src/
   content.config.ts           ← the frontmatter contract (Zod schema)
@@ -79,10 +77,44 @@ public/images/                ← images you upload from the admin panel
 **URLs are derived from the file path plus the topic:**
 
 ```
-content/problems/analysis/riemann-sum-arctangent-limit.md
-  → /problems/analysis/riemann-sum-arctangent-limit/
-  → /topic/analysis/
+content/problems/integrals/riemann-sum-arctangent-limit.md
+  → /problems/integrals/riemann-sum-arctangent-limit/
+  → /topic/integrals/
 ```
+
+The taxonomy is **flat**: one level, `topic`. There is no subtopic level, by
+choice — when one topic needs splitting, add topics to the list rather than
+nesting them.
+
+The vault currently defines a single topic, `integrals`, because that is what is
+being studied. Adding another is a one-line change in **two** places —
+`src/lib/taxonomy.ts` (`TOPICS` and `TOPIC_LABELS`) for the site and
+`tools/admin/schema.mjs` (`TOPICS`) for the admin panel — then restart both. The
+two lists are kept in sync by hand because the admin panel does not import the
+site's TypeScript. The sidebar, topic pages and admin folder layout all already
+handle several topics.
+
+### Exam source — a separate axis
+
+`exam` is **independent of topic**. It records *where a problem came from*, not
+what it is about, so the same integral can be a JEE Advanced problem or an
+integration-bee one:
+
+```
+exam: putnam          → /exam/putnam/
+exam: integration-bee → /exam/integration-bee/
+```
+
+It drives its own browsing pages and the "Exam sources" section in the sidebar.
+The values are fixed (`jee-advanced`, `jee-main`, `rmo`, `inmo`, `imo`, `putnam`,
+`integration-bee`, `undergrad`, `olympiad-other`, `textbook`, `own`) and the
+build rejects anything else. The free-text `source:` field sits alongside it for
+the exact citation — `exam` is the grouping key, `source` is the label.
+
+> **Do not put a `slug:` field in frontmatter.** Astro's glob loader treats a
+> frontmatter `slug` as the entry's entire id, which collapses the URL to
+> `/problems/<slug>/`. The file path is the single source of truth, and the admin
+> panel never writes a slug.
 
 Renaming a file changes its URL, so the admin panel only renames on request.
 
@@ -96,9 +128,8 @@ file the site cannot build. The fields for a problem:
 ```yaml
 ---
 title: "In an acute triangle, show sin A + sin B + sin C > 2"
-topic: inequalities          # exactly one; sets the folder and /topic/<x> URL
-topics: [geometry]           # optional extra topics, for cross-listing
-tags: [concavity, imo]       # free-form, lowercase, hyphenated
+topic: integrals              # exactly one; sets the folder and /topic/<x> URL
+tags: [definite-integrals, symmetry, integration-bee]
 difficulty: warmup           # warmup | standard | hard | brutal | research
 exam: rmo                    # jee-advanced | jee-main | rmo | inmo | imo |
                              # putnam | integration-bee | undergrad |
@@ -230,9 +261,13 @@ this wrong and every internal link 404s.
 
 ## Customising
 
-**The taxonomy** — add a topic in `src/lib/taxonomy.ts` **and** in
-`tools/admin/schema.mjs` (the admin panel does not import the site's TypeScript,
-so the two lists are kept in sync by hand), then restart both processes.
+**The taxonomy** — add a topic in `src/lib/taxonomy.ts` (`TOPICS` and
+`TOPIC_LABELS`) **and** in `tools/admin/schema.mjs` (`TOPICS`), then restart both
+processes. The admin panel does not import the site's TypeScript, so the two
+lists are kept in sync by hand.
+
+**Exam sources** — edit `EXAM_TYPES` / `EXAM_LABELS` in `src/lib/taxonomy.ts` and
+`EXAM_TYPES` in `tools/admin/schema.mjs`.
 
 **Site identity** — name, tagline, description, author, repo URL:
 `src/lib/site.ts`.
