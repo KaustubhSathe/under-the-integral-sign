@@ -42,7 +42,7 @@ const self: EntryRef = found ?? {
   title: d.title,
   summary: d.summary,
   topic: d.topic,
-  subtopic: d.subtopic,
+  topics: [d.topic, ...(d.topics ?? []).filter((t) => t !== d.topic)],
   tags: d.tags ?? [],
   exam: d.exam,
   source: d.source,
@@ -64,7 +64,6 @@ const description = d.summary || d.title;
   description={description}
   type="article"
   topics={s.topics}
-  subtopics={s.subtopics}
   exams={s.exams}
   published={entry.data.date}
   updated={entry.data.updated ?? entry.data.date}

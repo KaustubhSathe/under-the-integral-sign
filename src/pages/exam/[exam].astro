@@ -5,13 +5,6 @@ import { allEntries, stats } from "../../lib/entries";
 import { EXAM_TYPES, EXAM_LABELS, type ExamType } from "../../lib/taxonomy";
 import { pluralize } from "../../lib/utils";
 
-/**
- * Problems grouped by where they came from: /exam/putnam/
- *
- * Exam provenance is orthogonal to the topic → subtopic taxonomy — the same
- * integral can come from the integration bee or from JEE Advanced — so it gets
- * its own browsing axis rather than living inside the topic tree.
- */
 export async function getStaticPaths() {
   const entries = await allEntries();
   const present = new Set(entries.map((e) => e.exam).filter(Boolean));
@@ -38,7 +31,6 @@ const years = [...new Set(entries.map((e) => e.year).filter(Boolean))] as number
   title={label}
   description={`${entries.length} problems from ${label}, with key ideas and complete solutions.`}
   topics={s.topics}
-  subtopics={s.subtopics}
   exams={s.exams}
 >
   <div class="page-head">

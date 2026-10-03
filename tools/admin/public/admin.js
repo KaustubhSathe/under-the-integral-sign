@@ -120,60 +120,6 @@ function populateTopicSelect(select) {
     opt.textContent = t.label;
     select.appendChild(opt);
   }
-  populateSubtopicSelect(select.value);
-}
-
-/** Subtopics depend on the topic, so this is called whenever the topic changes. */
-function subtopicsFor(topic) {
-  const entry = state.boot.schema.taxonomy?.[topic];
-  return entry?.subtopics ?? [];
-}
-
-function populateSubtopicSelect(topic, selected) {
-  const select = $("#newSubtopic");
-  if (!select) return;
-  select.innerHTML = "";
-  const subs = subtopicsFor(topic);
-  if (subs.length === 0) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "(no subtopics defined for this topic)";
-    select.appendChild(opt);
-    return;
-  }
-  for (const s of subs) {
-    const opt = document.createElement("option");
-    opt.value = s.value;
-    opt.textContent = s.label;
-    select.appendChild(opt);
-  }
-  if (selected && subs.some((s) => s.value === selected)) select.value = selected;
-}
-
-/**
- * Rebuild a subtopic <select> for the entry form from the chosen topic, keeping
- * the current value when it is still valid.
- */
-function refreshFormSubtopics(topic, keep) {
-  const select = $("#field-subtopic");
-  if (!select) return;
-  const current = keep ?? select.value;
-  select.innerHTML = "";
-  const subs = subtopicsFor(topic);
-  if (subs.length === 0) {
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "(no subtopics defined for this topic)";
-    select.appendChild(opt);
-    return;
-  }
-  for (const s of subs) {
-    const opt = document.createElement("option");
-    opt.value = s.value;
-    opt.textContent = s.label;
-    select.appendChild(opt);
-  }
-  if (current && subs.some((s) => s.value === current)) select.value = current;
 }
 
 function renderHelp(groups) {
@@ -306,27 +252,24 @@ function renderForm() {
   const host = $("#fields");
   host.innerHTML = "";
 
-  // The filename is shown read-only rather than as an editable "slug" field.
-  // A frontmatter slug would override Astro's entry id and flatten the URL, so
-  // the file path is the single source of truth; renaming goes through
-  // "Rename file…", which moves the file.
-  const fileWrap = document.createElement("div");
-  fileWrap.className = "field";
-  fileWrap.innerHTML = '<div class="field__label">File</div>';
-  const fileText = document.createElement("div");
-  fileText.className = "mono";
-  fileText.style.cssText = "color:var(--text-2); font-size:0.85rem";
-  fileText.textContent = cur.isNew
-    ? "not saved yet — the file is named after the title"
-    : `content/${cur.kind}/${cur.path}`;
-  fileWrap.appendChild(fileText);
-  const fileHint = document.createElement("div");
-  fileHint.className = "field__hint";
-  fileHint.textContent = cur.isNew
-    ? "Topic and subtopic decide the folders; the title decides the filename."
-    : "The path sets the entry's URL. Use “Rename file…” to change the filename.";
-  fileWrap.appendChild(fileHint);
-  host.appendChild(fileWrap);
+  // Slug gets its own always-visible field at the top: it is the filename.
+  const slugWrap = document.createElement("div");
+  slugWrap.className = "field";
+  slugWrap.innerHTML = '<div class="field__label">Filename slug</div>';
+  const slugInput = document.createElement("input");
+  slugInput.type = "text";
+  slugInput.id = "field-slug";
+  slugInput.value =
+    cur.frontmatter.slug ??
+    (cur.path ? cur.path.slice(cur.path.lastIndexOf("/") + 1).replace(/\.md$/, "") : "");
+  slugInput.addEventListener("input", () => markDirty());
+  slugWrap.appendChild(slugInput);
+  const slugHint = document.createElement("div");
+  slugHint.className = "field__hint";
+  slugHint.textContent =
+    "Lowercase, hyphenated. Changing this renames the file (and its URL) only when you use “Rename file…”.";
+  slugWrap.appendChild(slugHint);
+  host.appendChild(slugWrap);
 
   for (const f of fieldsFor(cur.kind)) {
     host.appendChild(renderField(f, cur.frontmatter[f.key]));
@@ -378,34 +321,15 @@ function renderField(f, value) {
     case "select": {
       const sel = document.createElement("select");
       sel.id = `field-${f.key}`;
-
-      // The subtopic list is driven by the topic, so it is rebuilt here rather
-      // than taken from the static field options.
-      const dynamic = f.key === "subtopic";
-      const optionList = dynamic
-        ? subtopicsFor(cur.frontmatter.topic)
-        : f.options ?? [];
-
-      const opts =
-        f.key === "status" || dynamic ? [] : [{ value: "", label: "— none —" }];
-      for (const opt of [...opts, ...optionList]) {
+      const opts = f.key === "status" ? [] : [{ value: "", label: "— none —" }];
+      for (const opt of [...opts, ...f.options]) {
         const o = document.createElement("option");
         o.value = opt.value;
         o.textContent = opt.label;
         sel.appendChild(o);
       }
-      if (dynamic) {
-        const want = value ?? optionList[0]?.value ?? "";
-        if (want) sel.value = want;
-      } else {
-        sel.value = value ?? (f.key === "status" ? "stub" : "");
-      }
-
-      sel.addEventListener("change", () => {
-        // Changing the topic invalidates the subtopic, so rebuild that select.
-        if (f.key === "topic") refreshFormSubtopics(sel.value);
-        onInput();
-      });
+      sel.value = value ?? (f.key === "status" ? "stub" : "");
+      sel.addEventListener("change", onInput);
       wrap.appendChild(sel);
       break;
     }
@@ -505,6 +429,9 @@ function toDateInput(value) {
 function collect() {
   const cur = state.current;
   const fm = {};
+
+  const slug = $("#field-slug")?.value.trim();
+  if (slug) fm.slug = slug;
 
   for (const f of fieldsFor(cur.kind)) {
     const el = $(`#field-${f.key}`);
@@ -619,17 +546,10 @@ $$("[data-new-kind]").forEach((btn) =>
 function openNewDialog(kind) {
   $("#newKind").value = kind;
   $("#newTitle").value = "";
-  const firstTopic = state.boot.schema.topics[0].value;
-  $("#newTopic").value = firstTopic;
-  populateSubtopicSelect(firstTopic);
+  $("#newTopic").value = state.boot.schema.topics[0].value;
   $("#newDialog").showModal();
   $("#newTitle").focus();
 }
-
-// The subtopic options follow the chosen topic.
-$("#newTopic").addEventListener("change", (event) => {
-  populateSubtopicSelect(event.target.value);
-});
 
 $("#newCancel").addEventListener("click", () => $("#newDialog").close());
 
@@ -640,12 +560,6 @@ $("#newForm").addEventListener("submit", async (event) => {
   const kind = $("#newKind").value;
   const title = $("#newTitle").value.trim() || "Untitled";
   const topic = $("#newTopic").value;
-  const subtopic = $("#newSubtopic").value;
-
-  if (!subtopic) {
-    toast("Pick a subtopic first — it decides the folder.", "err");
-    return;
-  }
 
   if (!(await confirmDiscard())) return;
   $("#newDialog").close();
@@ -656,7 +570,7 @@ $("#newForm").addEventListener("submit", async (event) => {
     path: "",
     isNew: true,
     mtime: null,
-    frontmatter: { title, topic, subtopic, status: "stub" },
+    frontmatter: { title, topic, status: "stub" },
     body: defaultBody(kind, title),
   };
   state.dirty = true;

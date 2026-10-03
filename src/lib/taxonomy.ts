@@ -2,60 +2,43 @@
  * The single source of truth for the vault's taxonomy.
  *
  * Used by BOTH the static site (src/content.config.ts) and the local admin panel
- * (tools/admin/schema.mjs). Adding a topic here means updating the same list in
- * tools/admin/schema.mjs, then restarting both processes.
+ * (tools/admin/schema.mjs). If you add a topic here, restart the admin panel and
+ * the Astro dev server so both pick it up.
  */
 
-/**
- * Broad mathematical area. Every entry names exactly one.
- *
- * Currently a single topic, by choice: the vault is Calculus only, and depth
- * comes from subtopics. Adding a topic back is a one-line change here plus the
- * matching edit in tools/admin/schema.mjs — the rest of the site (sidebar, topic
- * pages, admin folder layout) already handles more than one.
- */
-export const TOPICS = ["calculus"] as const;
+/** Broad mathematical area. Every entry names exactly one primary topic. */
+export const TOPICS = [
+  "algebra",
+  "number-theory",
+  "combinatorics",
+  "geometry",
+  "inequalities",
+  "analysis",
+  "linear-algebra",
+  "abstract-algebra",
+  "topology",
+  "probability",
+] as const;
+
 export type Topic = (typeof TOPICS)[number];
 
 export const TOPIC_LABELS: Record<Topic, string> = {
-  calculus: "Calculus",
+  algebra: "Algebra",
+  "number-theory": "Number Theory",
+  combinatorics: "Combinatorics",
+  geometry: "Geometry",
+  inequalities: "Inequalities",
+  analysis: "Analysis & Calculus",
+  "linear-algebra": "Linear Algebra",
+  "abstract-algebra": "Abstract Algebra",
+  topology: "Topology",
+  probability: "Probability",
 };
-
-/** Subtopics per topic. Every subtopic belongs to exactly one topic. */
-export const SUBTOPICS: Record<Topic, readonly string[]> = {
-  calculus: ["integrals"],
-};
-
-export type Subtopic = string;
-
-export const SUBTOPIC_LABELS: Record<string, string> = {
-  integrals: "Integrals",
-};
-
-/** Display name for a subtopic slug, falling back to a title-cased slug. */
-export function subtopicLabel(subtopic: string): string {
-  const known = SUBTOPIC_LABELS[subtopic];
-  if (known) return known;
-  return subtopic
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-}
-
-/** Subtopics that exist for a given topic (empty array for an unknown topic). */
-export function subtopicsOf(topic: string): readonly string[] {
-  return SUBTOPICS[topic as Topic] ?? [];
-}
-
-/** The topic a subtopic belongs to, or undefined. */
-export function topicOfSubtopic(subtopic: string): Topic | undefined {
-  return TOPICS.find((t) => SUBTOPICS[t].includes(subtopic));
-}
 
 /**
- * Where a problem comes from. Independent of topic/subtopic: it records the
- * contest, not the mathematics, and drives the /exam/<slug> browsing pages so
- * "IMO 2019 P2" and "IMO 2021 P6" group together.
+ * Where the problem comes from. `contest` is the umbrella used for the
+ * /exam/<slug> browsing pages, so "IMO 2019 P2" and "IMO 2021 P6" group
+ * together while still recording the exact year and problem number.
  */
 export const EXAM_TYPES = [
   "jee-advanced",

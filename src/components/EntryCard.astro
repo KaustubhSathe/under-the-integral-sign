@@ -24,14 +24,7 @@ const difficultyLabel = entry.difficulty
 const date = entry.updated ?? entry.date;
 ---
 
-<li
-  class="card"
-  data-kind={entry.kind}
-  data-topic={entry.topic}
-  data-subtopic={entry.subtopic}
-  data-exam={entry.exam ?? ""}
-  data-difficulty={entry.difficulty ?? ""}
->
+<li class="card" data-kind={entry.kind} data-topic={entry.topic} data-difficulty={entry.difficulty ?? ""}>
   <h3 class="card__title">
     <a href={href(entry.href)}>{entry.title}</a>
   </h3>
@@ -46,8 +39,6 @@ const date = entry.updated ?? entry.date;
 
   <div class="badge-row">
     {!hideTopic && <Badge kind="topic" value={entry.topic} />}
-    <Badge kind="subtopic" value={entry.subtopic} topic={entry.topic} />
-    {entry.exam && <Badge kind="exam" value={entry.exam} />}
     {entry.kind === "theory" && <Badge kind="theory" value="theory" label={entry.section ?? "theory"} />}
     {difficultyLabel && (
       <span class="badge badge--difficulty" title={`Difficulty: ${difficultyLabel}`}>{stars}</span>

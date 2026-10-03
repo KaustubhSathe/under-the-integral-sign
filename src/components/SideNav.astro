@@ -1,30 +1,19 @@
 ---
-import {
-  TOPICS,
-  TOPIC_LABELS,
-  EXAM_TYPES,
-  EXAM_LABELS,
-  subtopicLabel,
-  subtopicsOf,
-  type Topic,
-  type ExamType,
-} from "../lib/taxonomy";
+import { TOPICS, TOPIC_LABELS, EXAM_TYPES, EXAM_LABELS, type Topic, type ExamType } from "../lib/taxonomy";
 import { href } from "../lib/utils";
 import type { Counted } from "../lib/entries";
 
 interface Props {
-  /** Per-topic entry counts, so the nav can show "Calculus 12". */
+  /** Per-topic entry counts so the nav can show "Algebra 12". */
   topics?: Counted[];
-  /** Per-subtopic entry counts, e.g. "integrals" → 2. */
-  subtopics?: Counted[];
-  /** Per-exam-entry counts, e.g. "putnam" → 1. */
+  /** Per-exam-entry counts. */
   exams?: Counted[];
+  showExams?: boolean;
 }
 
-const { topics = [], subtopics = [], exams = [] } = Astro.props;
+const { topics = [], exams = [], showExams = true } = Astro.props;
 
 const topicCount = new Map(topics.map((t) => [t.key, t.count]));
-const subtopicCount = new Map(subtopics.map((s) => [s.key, s.count]));
 const examCount = new Map(exams.map((e) => [e.key, e.count]));
 const visibleTopics = TOPICS.filter((t) => topicCount.has(t));
 const visibleExams = EXAM_TYPES.filter((e) => examCount.has(e));
@@ -69,54 +58,28 @@ const here = stripBase(current);
   </div>
 
   {
-    visibleTopics.map((t: Topic) => {
-      const subs = subtopicsOf(t).filter((s) => subtopicCount.has(s));
-      return (
-        <div class="nav-group">
-          {/* One topic needs no link of its own — its subtopics are the nav. */}
-          {visibleTopics.length > 1 ? (
-            <p class="nav-group__title">
-              <a href={href(`/topic/${t}/`)}>{TOPIC_LABELS[t]}</a>
-            </p>
-          ) : (
-            <p class="nav-group__title">{TOPIC_LABELS[t]}</p>
-          )}
-          <ul class="nav-list">
-            {subs.map((s) => (
-              <li>
-                <a
-                  href={href(`/topic/${t}/${s}/`)}
-                  aria-current={here === `/topic/${t}/${s}` ? "page" : undefined}
-                >
-                  <span>{subtopicLabel(s)}</span>
-                  <span class="count">{subtopicCount.get(s)}</span>
-                </a>
-              </li>
-            ))}
-            {subs.length > 1 && (
-              <li>
-                <a
-                  href={href(`/topic/${t}/`)}
-                  aria-current={here === `/topic/${t}` ? "page" : undefined}
-                >
-                  <span>All {TOPIC_LABELS[t].toLowerCase()}</span>
-                  <span class="count">{topicCount.get(t)}</span>
-                </a>
-              </li>
-            )}
-          </ul>
-        </div>
-      );
-    })
+    visibleTopics.length > 0 && (
+      <div class="nav-group">
+        <p class="nav-group__title">Topics</p>
+        <ul class="nav-list">
+          {visibleTopics.map((t: Topic) => (
+            <li>
+              <a
+                href={href(`/topic/${t}/`)}
+                aria-current={here === `/topic/${t}` ? "page" : undefined}
+              >
+                <span>{TOPIC_LABELS[t]}</span>
+                <span class="count">{topicCount.get(t)}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
   }
 
   {
-    /*
-     * Exam provenance cuts across topics and subtopics: the same integral can
-     * have come from the integration bee or from JEE Advanced. This section is
-     * how you browse by where a problem came from rather than what it is about.
-     */
-    visibleExams.length > 0 && (
+    showExams && visibleExams.length > 0 && (
       <div class="nav-group">
         <p class="nav-group__title">Exam sources</p>
         <ul class="nav-list">

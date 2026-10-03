@@ -19,13 +19,11 @@ import cookieParser from "cookie-parser";
 import {
   ENTRY_KINDS,
   MARKDOWN_HELP,
-  TAXONOMY,
   TOPICS,
   DIFFICULTIES,
   EXAM_TYPES,
   THEORY_SECTIONS,
   STATUSES,
-  subtopicsFor,
   validate,
 } from "./schema.mjs";
 import {
@@ -233,8 +231,6 @@ app.get("/api/bootstrap", requireAuth, async (_req, res) => {
           { label: v.label, dir: v.dir, fields: v.fields },
         ]),
       ),
-      /** topic → subtopics, so the form can cascade one from the other. */
-      taxonomy: TAXONOMY,
       topics: TOPICS,
       difficulties: DIFFICULTIES,
       examTypes: EXAM_TYPES,
@@ -279,14 +275,8 @@ app.post("/api/save", requireAuth, async (req, res) => {
 
   const data = result.data;
 
-  /*
-   * Filename slug. Deliberately NOT written into the frontmatter: Astro's glob
-   * loader treats a `slug` field as the entry's whole id, so writing one would
-   * collapse the id to the basename and lose the topic/subtopic path — the entry
-   * would then be routed to /problems/<slug>/ instead of
-   * /problems/<topic>/<subtopic>/<slug>/. The path is the single source of truth.
-   */
-  let slug = slugify(data.title || "");
+  // Where should this live? <topic>/<slug>.md, unless an explicit path is given.
+  let slug = slugify(data.slug || data.title || "");
   if (!slug) return res.status(422).json({ error: "Could not derive a filename slug from the title." });
 
   // Keep the existing filename when editing, so that changing a title does not
@@ -297,7 +287,7 @@ app.post("/api/save", requireAuth, async (req, res) => {
     if (base) slug = base;
   }
 
-  const targetPath = buildEntryPath(kind, data.topic, data.subtopic, slug);
+  const targetPath = buildEntryPath(kind, data.topic, slug);
 
   try {
     // Optimistic concurrency: if the file changed since it was loaded, make the
@@ -323,15 +313,15 @@ app.post("/api/save", requireAuth, async (req, res) => {
       });
     }
 
-    const written = await writeEntry(kind, targetPath, data, body);
+    const written = await writeEntry(kind, targetPath, { ...data, slug }, body);
 
-    // A topic or subtopic change moves the file between folders.
+    // A topic change moves the file between folders.
     if (originalPath && originalPath !== written) {
       await deleteEntry(kind, originalPath);
     }
 
     const stat = await fs.stat(path.join(ROOT, ENTRY_KINDS[kind].dir, written));
-    res.json({ ok: true, path: written, mtime: stat.mtimeMs, frontmatter: data });
+    res.json({ ok: true, path: written, mtime: stat.mtimeMs, frontmatter: { ...data, slug } });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -355,12 +345,7 @@ app.post("/api/rename", requireAuth, async (req, res) => {
     const slug = slugify(newSlug);
     if (!slug) return res.status(422).json({ error: "That is not a usable slug." });
     const entry = await readEntry(kind, from);
-    const to = buildEntryPath(
-      kind,
-      entry.frontmatter.topic,
-      entry.frontmatter.subtopic,
-      slug,
-    );
+    const to = buildEntryPath(kind, entry.frontmatter.topic, slug);
     if (await pathExists(kind, to)) {
       return res.status(409).json({ error: `An entry already exists at ${to}.` });
     }

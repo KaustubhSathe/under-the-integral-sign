@@ -6,36 +6,23 @@
  *   (b) what the admin panel validates before writing a file,
  *   (c) what shape the YAML frontmatter must have.
  *
- * It mirrors src/content.config.ts and src/lib/taxonomy.ts. The admin panel does
- * not import the site's TypeScript, so when you change a list here, change it in
- * BOTH places:
- *   - topics + subtopics → src/lib/taxonomy.ts
- *   - fields             → src/content.config.ts
+ * It mirrors src/content.config.ts. If you change the Zod schema there, change
+ * the matching FIELD list here — the admin panel will otherwise reject or omit
+ * fields. `kind: "problems"` and `kind: "theory"` differ, so both lists exist.
  */
 
-/**
- * topic → subtopics. Every subtopic belongs to exactly one topic, and entry URLs
- * are /problems|theory/<topic>/<subtopic>/<slug>/.
- */
-export const TAXONOMY = {
-  calculus: {
-    label: "Calculus",
-    subtopics: [{ value: "integrals", label: "Integrals" }],
-  },
-};
-
-/** Flat list of {value,label} for the topic select. */
-export const TOPICS = Object.entries(TAXONOMY).map(([value, t]) => ({
-  value,
-  label: t.label,
-}));
-
-/** Subtopics for a topic, as {value,label}[]. */
-export function subtopicsFor(topic) {
-  const entry = TAXONOMY[topic];
-  if (!entry) return [];
-  return entry.subtopics ?? [];
-}
+export const TOPICS = [
+  { value: "algebra", label: "Algebra" },
+  { value: "number-theory", label: "Number Theory" },
+  { value: "combinatorics", label: "Combinatorics" },
+  { value: "geometry", label: "Geometry" },
+  { value: "inequalities", label: "Inequalities" },
+  { value: "analysis", label: "Analysis & Calculus" },
+  { value: "linear-algebra", label: "Linear Algebra" },
+  { value: "abstract-algebra", label: "Abstract Algebra" },
+  { value: "topology", label: "Topology" },
+  { value: "probability", label: "Probability" },
+];
 
 export const DIFFICULTIES = [
   { value: "warmup", label: "Warm-up (★)" },
@@ -45,10 +32,6 @@ export const DIFFICULTIES = [
   { value: "research", label: "Research flavour (★★★★★)" },
 ];
 
-/**
- * Where a problem came from. Orthogonal to topic/subtopic — it records the
- * contest, not the mathematics — and drives the site's /exam/<value>/ pages.
- */
 export const EXAM_TYPES = [
   { value: "jee-advanced", label: "JEE Advanced" },
   { value: "jee-main", label: "JEE Main" },
@@ -114,23 +97,20 @@ const field = (key, label, type, extra = {}) => ({ key, label, type, ...extra })
 const SHARED_HEAD = [
   field("title", "Title", "text", {
     required: true,
-    placeholder: "A hundredth power of tan, and why the answer is still pi/4",
+    placeholder: "In an acute triangle, show sin A + sin B + sin C > 2",
     hint: "The problem or theorem as you would say it out loud.",
   }),
-  field("topic", "Topic", "select", {
+  field("topic", "Primary topic", "select", {
     required: true,
     options: TOPICS,
-    hint: "Broad area. Together with the subtopic it decides the folder and the URL.",
+    hint: "Determines the URL /topic/<topic> and where the entry is filed on disk.",
   }),
-  field("subtopic", "Subtopic", "select", {
-    required: true,
-    // Options are filled in at runtime from the chosen topic — see form.js.
-    options: subtopicsFor("calculus"),
-    dependsOn: "topic",
-    hint: "Narrower bucket within the topic. Sets the second folder level.",
+  field("topics", "Also belongs to", "multiselect", {
+    options: TOPICS,
+    hint: "Extra topics for cross-listing. The primary topic is added automatically.",
   }),
   field("tags", "Tags", "list", {
-    hint: "Free-form, lowercase, hyphenated: integration-bee, symmetry, king-property.",
+    hint: "Free-form, lowercase, hyphenated: jensen, double-counting, imo.",
   }),
   field("summary", "Summary", "textarea", {
     rows: 2,
@@ -144,13 +124,10 @@ export const PROBLEM_FIELDS = [
     required: true,
     options: DIFFICULTIES,
   }),
-  field("exam", "Exam source", "select", {
-    options: EXAM_TYPES,
-    hint: "Which contest or course it came from. Drives the site's /exam/<name>/ pages.",
-  }),
+  field("exam", "Exam source", "select", { options: EXAM_TYPES }),
   field("source", "Source line", "text", {
-    placeholder: "Integration bee staple",
-    hint: "Where it came from, free text. Shown under the title. PLAIN TEXT.",
+    placeholder: "Putnam 2013, B3",
+    hint: "Shown under the title. PLAIN TEXT.",
   }),
   field("year", "Year", "number", { placeholder: "2013" }),
   field("problemNumber", "Problem number", "text", { placeholder: "B3" }),
@@ -167,7 +144,7 @@ export const PROBLEM_FIELDS = [
     hint: "PLAIN TEXT only. Frontmatter is not run through KaTeX.",
   }),
   field("related", "Related entries", "list", {
-    hint: "Slugs of other entries, e.g. tan-power-symmetry-integral.",
+    hint: "Slugs of other entries, e.g. cauchy-schwarz-engel-form.",
   }),
   field("sourceUrl", "Source URL", "text", {
     placeholder: "https://...",
@@ -258,7 +235,7 @@ export function validate(kind, input) {
         if (allowed[f.key]) {
           for (const v of list) {
             if (!allowed[f.key].includes(v)) {
-              errors.push(`${f.label}: "${v}" is not a known value.`);
+              errors.push(`${f.label}: "${v}" is not a known topic.`);
             }
           }
         }
@@ -272,18 +249,7 @@ export function validate(kind, input) {
           if (f.required) errors.push(`${f.label} is required.`);
           break;
         }
-        // The subtopic list is not fixed: it depends on the chosen topic.
-        if (f.key === "subtopic") {
-          const valid = subtopicsFor(out.topic ?? input.topic).map((s) => s.value);
-          if (valid.length === 0) {
-            errors.push(`Topic "${out.topic ?? input.topic}" has no subtopics defined.`);
-            break;
-          }
-          if (!valid.includes(v)) {
-            errors.push(`"${v}" is not a subtopic of "${out.topic ?? input.topic}".`);
-            break;
-          }
-        } else if (allowed[f.key] && !allowed[f.key].includes(v)) {
+        if (allowed[f.key] && !allowed[f.key].includes(v)) {
           errors.push(`${f.label}: "${v}" is not one of the allowed values.`);
           break;
         }
@@ -315,6 +281,12 @@ export function validate(kind, input) {
         out[f.key] = v;
       }
     }
+  }
+
+  // Primary topic must not be repeated inside `topics`.
+  if (out.topic && Array.isArray(out.topics)) {
+    out.topics = out.topics.filter((t) => t !== out.topic);
+    if (out.topics.length === 0) delete out.topics;
   }
 
   return errors.length > 0 ? { ok: false, errors } : { ok: true, data: out };

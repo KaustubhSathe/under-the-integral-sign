@@ -45,18 +45,16 @@ export function safeRelPath(rel) {
 }
 
 /**
- * Where an entry lives: content/<kind>/<topic>/<subtopic>/<slug>.md
- * The two folder levels mirror the taxonomy so the tree on GitHub is browsable
- * and matches the site's URLs.
+ * Where an entry lives: content/<kind>/<topic>/<slug>.md
+ * The topic folder keeps the tree browsable on GitHub, which is the whole point
+ * of storing the vault as plain files.
  */
-export function buildEntryPath(kind, topic, subtopic, slug) {
+export function buildEntryPath(kind, topic, slug) {
   if (!ENTRY_KINDS[kind]) throw new Error(`Unknown kind: ${kind}`);
   const safeTopic = slugify(topic ?? "") || "unsorted";
-  const safeSubtopic = slugify(subtopic ?? "");
   const safeSlug = slugify(slug ?? "");
   if (!safeSlug) throw new Error("Empty slug.");
-  if (!safeSubtopic) throw new Error("A subtopic is required to place the file.");
-  return `${safeTopic}/${safeSubtopic}/${safeSlug}.md`;
+  return `${safeTopic}/${safeSlug}.md`;
 }
 
 /** Resolve a content-relative path and prove it stays inside `content/`. */

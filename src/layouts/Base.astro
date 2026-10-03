@@ -14,9 +14,8 @@ interface Props {
   description?: string;
   /** "article" for problems/theory, "website" elsewhere. */
   type?: "website" | "article";
-  /** Sidebar counts: per-topic, per-subtopic and per-exam entry totals. */
+  /** Sidebar counts + topic/exam lists, passed by pages that have them. */
   topics?: Counted[];
-  subtopics?: Counted[];
   exams?: Counted[];
   /** Keep filtered/duplicate views out of search engines. */
   noindex?: boolean;
@@ -35,7 +34,6 @@ const {
   description = SITE.description,
   type = "website",
   topics = [],
-  subtopics = [],
   exams = [],
   noindex = false,
   image,
@@ -134,7 +132,7 @@ const rel = currentPath.startsWith(base) ? currentPath.slice(base.length) || "/"
       </header>
 
       <aside class="site-sidebar" id="sidebar">
-        <SideNav topics={topics} subtopics={subtopics} exams={exams} />
+        <SideNav topics={topics} exams={exams} />
       </aside>
 
       <main class="site-main" id="main">

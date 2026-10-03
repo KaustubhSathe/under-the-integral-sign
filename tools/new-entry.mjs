@@ -13,7 +13,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import readline from "node:readline/promises";
 import { stdin, stdout } from "node:process";
-import { ENTRY_KINDS, validate, toYaml, subtopicsFor } from "./admin/schema.mjs";
+import { ENTRY_KINDS, validate, toYaml } from "./admin/schema.mjs";
 import { ROOT, buildEntryPath } from "./admin/vault.mjs";
 
 function parseArgs(argv) {
@@ -78,36 +78,9 @@ try {
     process.exit(1);
   }
 
-  const subtopics = subtopicsFor(topic);
-  if (subtopics.length === 0) {
-    console.error(`Topic "${topic}" has no subtopics defined — add one in tools/admin/schema.mjs.`);
-    process.exit(1);
-  }
-  let subtopic = args.subtopic;
-  if (!subtopic) {
-    if (subtopics.length === 1) {
-      subtopic = subtopics[0].value;
-      console.log(`\nSubtopic: ${subtopics[0].label} (only one for this topic)`);
-    } else {
-      console.log("\nSubtopics:");
-      subtopics.forEach((s, i) => console.log(`  ${String(i + 1).padStart(2)}. ${s.label} (${s.value})`));
-      const answer = await ask("Subtopic (name or number): ");
-      const byIndex = Number.parseInt(answer, 10);
-      subtopic =
-        Number.isInteger(byIndex) && byIndex >= 1 && byIndex <= subtopics.length
-          ? subtopics[byIndex - 1].value
-          : answer;
-    }
-  }
-  if (!subtopics.some((s) => s.value === subtopic)) {
-    console.error(`Unknown subtopic "${subtopic}" for topic "${topic}".`);
-    process.exit(1);
-  }
-
   const frontmatter = {
     title,
     topic,
-    subtopic,
     status: args.status || "stub",
     date: today,
     ...(kind === "problems" ? { difficulty: args.difficulty || "standard" } : { section: "notes" }),
@@ -129,7 +102,7 @@ try {
     .replace(/^-+|-+$/g, "")
     .slice(0, 96);
 
-  const rel = buildEntryPath(kind, topic, subtopic, slug);
+  const rel = buildEntryPath(kind, topic, slug);
   const abs = path.join(ROOT, "content", kind, rel);
 
   try {
@@ -177,7 +150,7 @@ try {
         ].join("\n");
 
   await fs.mkdir(path.dirname(abs), { recursive: true });
-  await fs.writeFile(abs, `---\n${toYaml(result.data)}\n---\n\n${body}`, "utf8");
+  await fs.writeFile(abs, `---\n${toYaml({ ...result.data, slug })}\n---\n\n${body}`, "utf8");
 
   console.log(`\nCreated content/${kind}/${rel}\n`);
   console.log("Next:");
