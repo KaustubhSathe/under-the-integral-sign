@@ -81,7 +81,14 @@ exactly, including any given conditions, and solve it.
 
 Reply with a single JSON object and nothing else, with these keys:
 
-- "title": string. The problem or theorem, stated in one line.
+IMPORTANT: every field except "body" is PLAIN TEXT. These values are shown as
+literal strings in listings and navigation and are NEVER rendered as maths, so a
+"$...$" in one of them appears to the reader as raw LaTeX. Write mathematics in
+those fields with Unicode and words instead: π/4, ∫₀¹, x², sqrt(2), theta.
+Only "body" is rendered with KaTeX.
+
+- "title": string. The problem or theorem, stated in one line, in plain text —
+  for example "A hundredth power of tan, and why the answer is still π/4".
 - "summary": string. One sentence, plain text, NO LaTeX, describing what is
   really being asked.
 - "keyIdea": string. PLAIN TEXT, no LaTeX. The single insight that unlocks it,
@@ -94,7 +101,9 @@ ${isProblem ? `- "difficulty": one of ${difficulties.map((d) => `"${d}"`).join("
 - "exam": where the problem came from, one of ${exams.map((e) => `"${e}"`).join(", ")}.
   Use "own" unless the source is actually evident — from the prompt, or from a
   contest heading visible in the image. Do not guess a competition.` : `- "section": one of ${theorySections.map((s) => `"${s}"`).join(", ")}.`}
-- "body": string. The Markdown body, WITHOUT the frontmatter block.
+- "body": string. The Markdown body, WITHOUT the frontmatter block. This is the
+  ONLY field where maths is rendered, so use $...$ inline and $$...$$ display
+  here.
 
 Write the body${
     isProblem
