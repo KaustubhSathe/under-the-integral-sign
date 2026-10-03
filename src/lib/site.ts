@@ -12,9 +12,9 @@ export const SITE = {
     "Personal vault of mathematics: olympiad and competition problems (RMO, INMO, IMO, Putnam, JEE Advanced), integration bee material, and undergraduate theory — with the key idea written down for every problem.",
   author: "the vault keeper",
   /** Change to your repository URL. */
-  repo: "https://github.com/your-username/under-the-integral-sign",
+  repo: "https://github.com/KaustubhSathe/under-the-integral-sign",
   /** Public URL, no trailing slash. Must match astro.config.mjs `site`. */
-  url: "https://example.github.io",
+  url: "https://kaustubhsathe.github.io",
   /** Sub-path of the deployment, no trailing slash. "" for a root site. */
   base: "/under-the-integral-sign",
   locale: "en",
