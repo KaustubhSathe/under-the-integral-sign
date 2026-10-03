@@ -293,6 +293,46 @@ app.get("/api/ai-status", requireAuth, (_req, res) => {
 app.post("/api/generate", requireAuth, async (req, res) => {
   const { kind, prompt, image } = req.body ?? {};
   if (!ENTRY_KINDS[kind]) return res.status(400).json({ error: "Unknown kind." });
+
+  /*
+   * Server-sent events, so the panel can show the solution being written. A long
+   * entry takes tens of seconds, and a silent wait is indistinguishable from a
+   * hang — which is exactly how it read before this existed.
+   *
+   * Nothing streams until the first byte, so headers go out immediately along
+   * with a keep-alive comment; some proxies and browsers otherwise sit on an
+   * idle connection.
+   */
+  res.writeHead(200, {
+    "content-type": "text/event-stream; charset=utf-8",
+    "cache-control": "no-cache, no-transform",
+    connection: "keep-alive",
+    "x-accel-buffering": "no",
+  });
+
+  const send = (payload) => {
+    if (res.writableEnded) return;
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  };
+
+  const started = Date.now();
+  const controller = new AbortController();
+  /*
+   * Abort only when the CLIENT goes away mid-generation, so a closed panel stops
+   * paying for the rest of the reply.
+   *
+   * This listens on `res`, not `req`: a request's "close" fires as soon as its
+   * body has been read, which for a parsed JSON body is immediately, so listening
+   * there aborted every generation the moment it started.
+   */
+  res.on("close", () => {
+    if (!res.writableEnded) controller.abort();
+  });
+
+  const keepAlive = setInterval(() => {
+    if (!res.writableEnded) res.write(": keep-alive\n\n");
+  }, 15000);
+
   try {
     const result = await generateEntry({
       kind,
@@ -302,11 +342,16 @@ app.post("/api/generate", requireAuth, async (req, res) => {
       difficulties: DIFFICULTIES.map((d) => d.value),
       exams: EXAM_TYPES.map((e) => e.value),
       theorySections: THEORY_SECTIONS.map((s) => s.value),
+      signal: controller.signal,
+      onProgress: (event) => send({ type: "progress", elapsedMs: Date.now() - started, ...event }),
     });
-    res.json(result);
+    send({ type: "done", elapsedMs: Date.now() - started, ...result });
   } catch (err) {
     // The message is written for a human, so it is safe to show as-is.
-    res.status(502).json({ error: err.message });
+    send({ type: "error", elapsedMs: Date.now() - started, error: err.message });
+  } finally {
+    clearInterval(keepAlive);
+    if (!res.writableEnded) res.end();
   }
 });
 

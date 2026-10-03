@@ -551,6 +551,8 @@ const ai = {
   image: null,
   imageName: "",
   busy: false,
+  /** AbortController for an in-flight generation, so Cancel can stop it. */
+  controller: null,
   /** null = not asked yet, so the status line is fetched once per session. */
   configured: null,
   model: "",
@@ -778,7 +780,16 @@ const readAsDataUrl = (file) =>
 
 /* ------------------------------------------------------------------ submit -- */
 
-$("#newCancel").addEventListener("click", () => $("#newDialog").close());
+$("#newCancel").addEventListener("click", () => {
+  // Cancelling mid-generation should also stop the request, not leave it running.
+  if (ai.controller) ai.controller.abort();
+  $("#newDialog").close();
+});
+
+/** Stop generating, but keep the dialog open so the prompt is not lost. */
+$("#aiCancel").addEventListener("click", () => {
+  if (ai.controller) ai.controller.abort();
+});
 
 $("#newForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -814,6 +825,9 @@ $("#newForm").addEventListener("submit", async (event) => {
  * Send the prompt (and any photo) to the server, then open the result in the
  * editor. Deliberately does NOT save: model output always needs a human pass,
  * especially the mathematics.
+ *
+ * The response is an SSE stream, so the panel shows the solution being written
+ * rather than an unexplained wait. A long entry takes tens of seconds.
  */
 async function generateAiDraft({ kind, topic }) {
   const prompt = $("#aiPrompt").value.trim();
@@ -826,21 +840,76 @@ async function generateAiDraft({ kind, topic }) {
   const button = $("#newSubmit");
   const label = button.textContent;
   const status = $("#aiStatus");
+  const log = $("#aiLog");
+  const progress = $("#aiProgress");
+
   ai.busy = true;
   button.disabled = true;
   button.textContent = "Generating…";
-  status.hidden = false;
-  status.className = "aistatus";
-  status.textContent = ai.image ? "Reading the photo and drafting the entry…" : "Drafting the entry…";
+  $("#aiCancel").hidden = false;
+  status.hidden = true;
+  progress.hidden = false;
+  log.textContent = "";
+  log.hidden = false;
+
+  const startedAt = Date.now();
+  const say = (line) => {
+    const secs = ((Date.now() - startedAt) / 1000).toFixed(1);
+    log.textContent += `[${secs.padStart(5)}s] ${line}\n`;
+    log.scrollTop = log.scrollHeight;
+  };
+  say(ai.image ? "Sending the prompt and the photo…" : "Sending the prompt…");
+
+  ai.controller = new AbortController();
+  let result = null;
+  let failure = null;
 
   try {
-    const res = await api("/api/generate", {
+    const res = await fetch("/api/generate", {
       method: "POST",
-      body: { kind, prompt, image: ai.image },
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind, prompt, image: ai.image }),
+      signal: ai.controller.signal,
     });
-    const d = res.entry ?? {};
+
+    if (!res.ok || !res.body) {
+      // A non-stream failure (auth, unknown kind) still answers with JSON.
+      const text = await res.text();
+      let msg = `HTTP ${res.status}`;
+      try {
+        msg = JSON.parse(text).error ?? msg;
+      } catch {
+        /* keep the status line */
+      }
+      throw new Error(msg);
+    }
+
+    await readSse(res.body, (event) => {
+      if (event.type === "progress") {
+        const p = event.phase;
+        if (p === "connecting") say("Connected. The model is reading your request…");
+        else if (p === "retrying") say(`Empty reply from the API — retrying (attempt ${event.attempt + 1})…`);
+        else if (p === "streaming") {
+          say(`Writing… ${event.chars} characters (~${event.tokens} tokens)`);
+        } else if (p === "parsing") {
+          say(`Reply complete (${event.chars} characters). Parsing the entry…`);
+        }
+      } else if (event.type === "done") {
+        result = event;
+        say(`Done in ${(event.elapsedMs / 1000).toFixed(1)}s.`);
+      } else if (event.type === "error") {
+        failure = event.error;
+      }
+    });
+
+    if (failure) throw new Error(failure);
+    if (!result) throw new Error("The server closed the stream without a result.");
+
+    const d = result.entry ?? {};
 
     if (!(await confirmDiscard())) return;
+    // Fold the log away on success; it exists to explain the wait, which is over.
+    progress.hidden = true;
     $("#newDialog").close();
 
     const title = d.title || "Untitled";
@@ -875,33 +944,75 @@ async function generateAiDraft({ kind, topic }) {
     renderForm();
     setSaveState("unsaved");
 
-    const used = res.usage?.outputTokens;
-    if (res.partial) {
+    const secs = (result.elapsedMs / 1000).toFixed(1);
+    if (result.partial) {
       /*
        * The reply hit the model's output limit and was salvaged. The fields that
        * arrived are usable, but something is missing, so this is said plainly
        * rather than presented as a finished draft.
        */
-      const missingBody = !d.body;
-      $("#status").textContent = missingBody
-        ? "PARTIAL draft — the reply was cut off before the body was written. Generate again, or ask for a shorter write-up."
-        : "PARTIAL draft — the reply was cut off, so the end of the body may be missing. Check it carefully.";
+      $("#status").textContent = d.body
+        ? `PARTIAL draft (${secs}s) — the reply was cut off, so the end of the body may be missing. Check it carefully.`
+        : `PARTIAL draft (${secs}s) — the reply was cut off before the body was written. Generate again, or ask for something shorter.`;
       toast("The reply was cut off. The draft is incomplete — check it.", "warn", 9000);
     } else {
+      const used = result.usage?.outputTokens;
       $("#status").textContent =
-        "AI draft ready — check the maths, then press Save to create the file." +
+        `AI draft ready in ${secs}s — check the maths, then press Save to create the file.` +
         (used ? ` (${used} output tokens)` : "");
       toast("Draft generated. Review it before saving.", "ok", 6000);
     }
     $("#body").focus();
   } catch (err) {
-    status.className = "aistatus aistatus--error";
-    status.textContent = err.message;
-    toast(err.message, "err", 8000);
+    const cancelled = err.name === "AbortError" || /cancelled/i.test(err.message);
+    if (cancelled) {
+      say("Cancelled.");
+      status.hidden = false;
+      status.className = "aistatus aistatus--warn";
+      status.textContent = "Cancelled. Nothing was saved.";
+    } else {
+      say(`Failed: ${err.message}`);
+      status.hidden = false;
+      status.className = "aistatus aistatus--error";
+      status.textContent = err.message;
+      toast(err.message, "err", 8000);
+    }
   } finally {
     ai.busy = false;
+    ai.controller = null;
     button.disabled = false;
     button.textContent = label;
+    $("#aiCancel").hidden = true;
+  }
+}
+
+/**
+ * Read a `text/event-stream` body and hand each parsed event to `onEvent`.
+ * Split from the caller so the framing rules live in one place.
+ */
+async function readSse(body, onEvent) {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let split;
+    while ((split = buffer.indexOf("\n\n")) !== -1) {
+      const chunk = buffer.slice(0, split);
+      buffer = buffer.slice(split + 2);
+      for (const line of chunk.split("\n")) {
+        if (!line.startsWith("data:")) continue; // ": keep-alive" comments
+        try {
+          onEvent(JSON.parse(line.slice(5).trim()));
+        } catch {
+          /* ignore a malformed frame rather than losing the whole stream */
+        }
+      }
+    }
   }
 }
 

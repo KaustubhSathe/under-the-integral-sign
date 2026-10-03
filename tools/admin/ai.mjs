@@ -307,11 +307,109 @@ or condition is unclear, say which reading you took in the body.`;
 }
 
 /**
+ * Consume an OpenAI-style SSE stream and assemble the completion.
+ *
+ * DeepSeek sends `data: {json}` lines with the incremental delta in
+ * `choices[0].delta.content`, then `data: [DONE]`. Usage arrives in a final chunk
+ * when the stream ends.
+ *
+ * Reports progress as it goes, so a caller can show the solution being written.
+ * Progress is throttled: a callback per token would flood the channel, and the
+ * UI only repaints a few times a second anyway.
+ */
+async function readStream(res, onProgress) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  let buffer = "";
+  let content = "";
+  let finishReason = null;
+  let usage = null;
+  let model = null;
+  let lastReport = 0;
+
+  const report = (force = false) => {
+    const now = Date.now();
+    if (!force && now - lastReport < 250) return;
+    lastReport = now;
+    onProgress({
+      phase: "streaming",
+      chars: content.length,
+      // Rough, and honest about being rough: ~4 characters per token.
+      tokens: Math.round(content.length / 4),
+      tail: content.slice(-240),
+    });
+  };
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // SSE events are separated by a blank line.
+    let split;
+    while ((split = buffer.indexOf("\n\n")) !== -1) {
+      const chunk = buffer.slice(0, split);
+      buffer = buffer.slice(split + 2);
+
+      for (const line of chunk.split("\n")) {
+        if (!line.startsWith("data:")) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === "[DONE]") continue;
+
+        let evt;
+        try {
+          evt = JSON.parse(data);
+        } catch {
+          continue; // a partial or unexpected line: skip rather than fail
+        }
+
+        if (evt.model) model = evt.model;
+        if (evt.usage) usage = evt.usage;
+
+        const choice = evt.choices?.[0];
+        if (!choice) continue;
+
+        const delta = choice.delta?.content;
+        if (delta) {
+          content += delta;
+          report();
+        }
+        if (choice.finish_reason) finishReason = choice.finish_reason;
+      }
+    }
+  }
+
+  if (content) report(true);
+  return { content, finishReason, usage, model };
+}
+
+/**
  * Call DeepSeek and return the parsed entry object.
+ *
+ * `onProgress` receives `{ phase, ... }` events as the request proceeds, so the
+ * panel can show what is happening instead of an unexplained wait:
+ *
+ *   { phase: "connecting" }
+ *   { phase: "thinking" }                      — connected, nothing back yet
+ *   { phase: "streaming", chars, tokens, tail } — text arriving
+ *   { phase: "retrying", attempt }             — empty reply, trying once more
+ *   { phase: "parsing", chars }
  *
  * Throws an Error whose message is safe to show in the UI.
  */
-export async function generateEntry({ kind, prompt, image, topics, difficulties, exams, theorySections }) {
+export async function generateEntry({
+  kind,
+  prompt,
+  image,
+  topics,
+  difficulties,
+  exams,
+  theorySections,
+  onProgress = () => {},
+  signal,
+}) {
   // Validate what the user can fix before complaining about configuration, or a
   // blank prompt gets blamed on a missing key.
   if (!prompt?.trim() && !image) throw new Error("Describe the entry, or attach a photo.");
@@ -352,6 +450,12 @@ export async function generateEntry({ kind, prompt, image, topics, difficulties,
      * more than this, so the ceiling is raised well clear of a long entry.
      */
     max_tokens: 32768,
+    /*
+     * Streamed. A long entry takes tens of seconds, and a silent wait is
+     * indistinguishable from a hang; streaming lets the panel show the solution
+     * being written, which also makes a slow request obviously alive.
+     */
+    stream: true,
   };
 
   let payload = null;
@@ -359,8 +463,11 @@ export async function generateEntry({ kind, prompt, image, topics, difficulties,
   let lastTruncated = false;
 
   for (let attempt = 0; attempt <= EMPTY_REPLY_RETRIES; attempt++) {
+    if (attempt > 0) onProgress({ phase: "retrying", attempt });
+
     let res;
     try {
+      onProgress({ phase: "connecting" });
       res = await fetch(`${API_BASE}/chat/completions`, {
         method: "POST",
         headers: {
@@ -368,20 +475,22 @@ export async function generateEntry({ kind, prompt, image, topics, difficulties,
           authorization: `Bearer ${key}`,
         },
         body: JSON.stringify(body),
+        signal,
       });
     } catch (err) {
+      if (err.name === "AbortError") throw new Error("Cancelled.");
       throw new Error(`Could not reach ${API_BASE}: ${err.message}`);
     }
 
-    const text = await res.text();
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      throw new Error(`Unexpected non-JSON reply from DeepSeek (HTTP ${res.status}).`);
-    }
-
-    if (!res.ok) {
+    // An error response is plain JSON rather than a stream.
+    if (!res.ok || !(res.headers.get("content-type") ?? "").includes("event-stream")) {
+      const text = await res.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        throw new Error(`Unexpected non-JSON reply from DeepSeek (HTTP ${res.status}).`);
+      }
       const detail = parsed?.error?.message ?? text.slice(0, 300);
       if (res.status === 401) throw new Error("DeepSeek rejected the API key. Check DEEPSEEK_API_KEY.");
       if (res.status === 402) throw new Error("DeepSeek says the account has insufficient balance.");
@@ -389,13 +498,14 @@ export async function generateEntry({ kind, prompt, image, topics, difficulties,
       throw new Error(`DeepSeek error (HTTP ${res.status}): ${detail}`);
     }
 
-    const choice = parsed?.choices?.[0];
-    const content = choice?.message?.content;
-    if (content) {
-      payload = parsed;
-      // "length" means the reply hit max_tokens, so the JSON is almost certainly
-      // cut off. Worth knowing before trying to parse it.
-      lastTruncated = choice?.finish_reason === "length";
+    const streamed = await readStream(res, onProgress);
+    if (streamed.content) {
+      lastTruncated = streamed.finishReason === "length";
+      payload = {
+        choices: [{ message: { content: streamed.content }, finish_reason: streamed.finishReason }],
+        usage: streamed.usage,
+        model: streamed.model,
+      };
       break;
     }
     // Known JSON-mode quirk: an empty completion. Retry once before giving up.
@@ -412,6 +522,7 @@ export async function generateEntry({ kind, prompt, image, topics, difficulties,
 
   const raw = payload.choices[0].message.content;
 
+  onProgress({ phase: "parsing", chars: raw.length });
   const { entry, partial } = parseEntryJson(raw, { truncated: lastTruncated });
 
   const usage = payload.usage ?? {};

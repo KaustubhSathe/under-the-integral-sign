@@ -765,6 +765,49 @@ input[type="checkbox"] {
   background: var(--bg);
   color: var(--text-2);
 }
+
+/* ------------------------------------------------------------ ai progress -- */
+.aiprogress {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  background: var(--bg);
+  padding: 0.55rem 0.7rem;
+}
+.aiprogress__head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-2);
+}
+/* A small pulsing dot, so it is visibly alive even between log lines. */
+.aiprogress__pulse {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+  animation: aipulse 1.1s ease-in-out infinite;
+}
+@keyframes aipulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aiprogress__pulse { animation: none; }
+}
+.aiprogress__log {
+  margin: 0.5rem 0 0;
+  max-height: 8.5rem;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-3);
+}
 .aistatus--ok {
   border-color: #33543a;
 }

@@ -256,11 +256,22 @@
             </div>
           </div>
 
+          <!-- Progress. Shown while generating, so the wait is legible rather
+               than an apparently frozen dialog. -->
+          <div class="aiprogress" id="aiProgress" hidden>
+            <div class="aiprogress__head">
+              <span class="aiprogress__pulse" aria-hidden="true"></span>
+              <span>Working — this can take up to a minute for a long solution.</span>
+            </div>
+            <pre class="aiprogress__log" id="aiLog" aria-live="polite"></pre>
+          </div>
+
           <div class="aistatus" id="aiStatus" hidden></div>
         </div>
 
         <div class="modal__actions">
           <button class="btn" value="cancel" type="button" id="newCancel">Cancel</button>
+          <button class="btn btn--danger" type="button" id="aiCancel" hidden>Stop generating</button>
           <button class="btn btn--primary" value="create" type="submit" id="newSubmit">Create</button>
         </div>
       </form>
