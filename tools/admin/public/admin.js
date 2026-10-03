@@ -637,33 +637,123 @@ $$("#newForm .modebar__opt").forEach((btn) =>
 
 /* ------------------------------------------------------------- photo input -- */
 
-$("#aiImage").addEventListener("change", async (event) => {
-  const file = event.target.files?.[0];
-  if (!file) return clearAiImage();
+/*
+ * One path in for every way of supplying a photo: the file picker, a drag onto
+ * the drop zone, and a paste from the clipboard. All three produce a File, so
+ * they share setAiImage().
+ */
 
-  const MAX = 8 * 1024 * 1024;
-  if (file.size > MAX) {
-    toast(`${file.name} is ${(file.size / 1048576).toFixed(1)} MB; the limit is 8 MB.`, "err", 6000);
-    return clearAiImage();
+const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+const IMAGE_MIME = /^image\/(png|jpeg|gif|webp)$/;
+
+async function setAiImage(file) {
+  if (!file) return;
+
+  if (!IMAGE_MIME.test(file.type)) {
+    // A clipboard image sometimes arrives as image/bmp or has no type at all.
+    toast(
+      file.type
+        ? `${file.type} is not supported — use PNG, JPEG, GIF or WebP.`
+        : "That clipboard item is not a PNG, JPEG, GIF or WebP image.",
+      "err",
+      7000,
+    );
+    return;
   }
-  if (!/^image\/(png|jpeg|gif|webp)$/.test(file.type)) {
-    toast("Use a JPEG, PNG, GIF or WebP image.", "err", 6000);
-    return clearAiImage();
+  if (file.size > IMAGE_MAX_BYTES) {
+    toast(`That image is ${(file.size / 1048576).toFixed(1)} MB; the limit is 8 MB.`, "err", 6000);
+    return;
   }
 
   try {
     ai.image = await readAsDataUrl(file);
-    ai.imageName = file.name;
+    ai.imageName = file.name || "pasted image";
     $("#aiImageThumb").src = ai.image;
-    $("#aiImageInfo").textContent = `${file.name} — ${(file.size / 1048576).toFixed(2)} MB`;
+    $("#aiImageInfo").textContent =
+      `${ai.imageName} — ${(file.size / 1048576).toFixed(2)} MB`;
     $("#aiImagePreview").hidden = false;
+    toast("Photo attached. Press Generate draft when ready.", "ok", 3500);
   } catch (err) {
-    toast(`Could not read that file: ${err.message}`, "err");
+    toast(`Could not read that image: ${err.message}`, "err");
     clearAiImage();
+  }
+}
+
+$("#aiImage").addEventListener("change", (event) => {
+  const file = event.target.files?.[0];
+  if (file) void setAiImage(file);
+});
+
+/* Click anywhere on the zone to browse; the file input is visually hidden. */
+$("#aiDropZone").addEventListener("click", (event) => {
+  if (event.target.closest("#aiImageClear")) return;
+  $("#aiImage").click();
+});
+$("#aiDropZone").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    $("#aiImage").click();
   }
 });
 
-$("#aiImageClear").addEventListener("click", clearAiImage);
+/* Drag and drop onto the zone. */
+["dragenter", "dragover"].forEach((type) =>
+  $("#aiDropZone").addEventListener(type, (event) => {
+    event.preventDefault();
+    $("#aiDropZone").classList.add("is-dragging");
+  }),
+);
+["dragleave", "drop"].forEach((type) =>
+  $("#aiDropZone").addEventListener(type, () => {
+    $("#aiDropZone").classList.remove("is-dragging");
+  }),
+);
+$("#aiDropZone").addEventListener("drop", (event) => {
+  event.preventDefault();
+  const file = event.dataTransfer?.files?.[0];
+  if (file) void setAiImage(file);
+});
+
+/**
+ * Paste an image from the clipboard.
+ *
+ * Bound to the document rather than the drop zone, because a paste event fires on
+ * whatever has focus — and after switching to AI mode that is the prompt box, not
+ * the drop zone. A paste carrying a file is unambiguous (text pastes have no
+ * `files`), so acting on it even while the user is in the textarea is the
+ * behaviour they are asking for. The AI panel must be open for this to apply.
+ */
+document.addEventListener("paste", (event) => {
+  if ($("#newDialog")?.open !== true) return;
+  if ($("#newMode")?.value !== "ai") return;
+
+  const items = [...(event.clipboardData?.items ?? [])];
+  const image = items.find((i) => i.kind === "file" && i.type.startsWith("image/"));
+  if (image) {
+    const file = image.getAsFile();
+    if (!file) return;
+    event.preventDefault();
+    void setAiImage(file);
+    return;
+  }
+
+  /*
+   * A file that is not an image. Text pastes (a screenshot's file, a copied
+   * problem statement) have `kind === "string"` and must fall through so the
+   * browser can paste them into whichever field has focus, so only a non-image
+   * FILE is worth complaining about.
+   */
+  const otherFile = items.find((i) => i.kind === "file");
+  if (otherFile?.type) {
+    event.preventDefault();
+    toast(`${otherFile.type} is not an image — use PNG, JPEG, GIF or WebP.`, "err", 6000);
+  }
+});
+
+$("#aiImageClear").addEventListener("click", (event) => {
+  event.stopPropagation();
+  clearAiImage();
+});
 
 function clearAiImage() {
   ai.image = null;

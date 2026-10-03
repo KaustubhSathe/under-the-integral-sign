@@ -220,11 +220,33 @@
 
           <div class="field">
             <div class="field__label">Photo (optional)</div>
-            <input type="file" id="aiImage" accept="image/png,image/jpeg,image/gif,image/webp" />
+
+            <!-- The file input is hidden; the zone is the control. Clicking it
+                 opens the picker, and it also accepts drops and pastes. -->
+            <input
+              type="file"
+              id="aiImage"
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              hidden
+            />
+            <div
+              class="dropzone"
+              id="aiDropZone"
+              role="button"
+              tabindex="0"
+              aria-label="Attach a photo: click to browse, drop a file, or paste from the clipboard"
+            >
+              <span class="dropzone__main">Click to choose, drop a file, or paste</span>
+              <span class="dropzone__sub">
+                Copy a screenshot or photo, then press <kbd>Ctrl</kbd>+<kbd>V</kbd>
+                anywhere in this dialog.
+              </span>
+            </div>
             <div class="field__hint">
               JPEG, PNG, GIF or WebP, up to 8 MB. The image is sent to DeepSeek to
               read the problem from; it is not saved into the vault.
             </div>
+
             <div class="aiimage" id="aiImagePreview" hidden>
               <img id="aiImageThumb" alt="The photo that will be sent to DeepSeek" />
               <div class="aiimage__meta">
