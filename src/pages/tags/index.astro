@@ -1,0 +1,45 @@
+---
+import Base from "../../layouts/Base.astro";
+import { allEntries, stats } from "../../lib/entries";
+import { href, count, pluralize, titleize } from "../../lib/utils";
+
+const entries = await allEntries();
+const s = await stats();
+const tags = s.tags;
+---
+
+<Base
+  title="Tags"
+  description="Every tag in the vault, with counts — the full cross-cut of problems and theory."
+  topics={s.topics}
+  exams={s.exams}
+>
+  <div class="page-head">
+    <p class="page-head__eyebrow">Index</p>
+    <h1 class="page-head__title">Tags</h1>
+    <p class="page-head__lede">
+      {pluralize(tags.length, "tag")} across {count(entries.length, "entry", "entries")}.
+      Tags cut across topics — <span class="mono">jensen</span> appears in inequalities and
+      in analysis, <span class="mono">permutations</span> in combinatorics and probability.
+    </p>
+  </div>
+
+  {
+    tags.length === 0 ? (
+      <p class="empty">No tags yet. Add a <code>tags:</code> list to an entry's frontmatter.</p>
+    ) : (
+      <ul class="card-grid">
+        {tags.map((t) => (
+          <li class="card" style="padding:0.8rem 0.95rem">
+            <h2 class="card__title" style="font-size:1rem">
+              <a href={href(`/tags/${t.key}/`)}>{titleize(t.key)}</a>
+            </h2>
+            <div class="card__foot" style="border:0;padding-top:0.3rem">
+              <span>{count(t.count, "entry", "entries")}</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</Base>

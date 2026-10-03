@@ -1,0 +1,40 @@
+---
+import EntryCard from "./EntryCard.astro";
+import type { EntryRef } from "../lib/entries";
+
+interface Props {
+  entries: EntryRef[];
+  /** Grid (default) or a single stacked column for long-form lists. */
+  layout?: "grid" | "list";
+  showKeyIdea?: boolean;
+  hideTopic?: boolean;
+  showDate?: boolean;
+  emptyMessage?: string;
+}
+
+const {
+  entries,
+  layout = "grid",
+  showKeyIdea = false,
+  hideTopic = false,
+  showDate = false,
+  emptyMessage = "Nothing here yet.",
+} = Astro.props;
+---
+
+{
+  entries.length === 0 ? (
+    <p class="empty">{emptyMessage}</p>
+  ) : (
+    <ul class:list={["card-grid", layout === "list" && "card-grid--single"]}>
+      {entries.map((entry) => (
+        <EntryCard
+          entry={entry}
+          showKeyIdea={showKeyIdea}
+          hideTopic={hideTopic}
+          showDate={showDate}
+        />
+      ))}
+    </ul>
+  )
+}

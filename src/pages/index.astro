@@ -1,0 +1,116 @@
+---
+import Base from "../layouts/Base.astro";
+import EntryList from "../components/EntryList.astro";
+import Icon from "../components/Icon.astro";
+import { allEntries, stats } from "../lib/entries";
+import { SITE } from "../lib/site";
+import { href, pluralize } from "../lib/utils";
+import { TOPIC_LABELS, type Topic } from "../lib/taxonomy";
+
+const entries = await allEntries();
+const s = await stats();
+
+// A "latest" strip: the most recently touched problems, and the same for theory.
+const latestProblems = entries.filter((e) => e.kind === "problems").slice(0, 6);
+const latestTheory = entries.filter((e) => e.kind === "theory").slice(0, 4);
+const topicsWithCount = s.topics.filter((t) => t.count > 0);
+---
+
+<Base topics={s.topics} exams={s.exams}>
+  <section class="hero">
+    <p class="page-head__eyebrow">A personal mathematics vault</p>
+    <h1 class="hero__title">
+      Problems, proofs and the <em>one idea</em> that unlocks each of them.
+    </h1>
+    <p class="hero__lede">
+      Competition and undergraduate mathematics — JEE Advanced, RMO, INMO, IMO,
+      Putnam, integration bee — written up in full, with the key idea stated up
+      front and every solution worked to the end.
+    </p>
+    <p class="hero__formula">
+      ∫ · every entry is a plain <code>.md</code> file, versioned in git.
+    </p>
+  </section>
+
+  <ul class="stat-row">
+    <li class="stat">
+      <div class="stat__value">{s.problems}</div>
+      <div class="stat__label">Problems</div>
+    </li>
+    <li class="stat">
+      <div class="stat__value">{s.theory}</div>
+      <div class="stat__label">Theory notes</div>
+    </li>
+    <li class="stat">
+      <div class="stat__value">{s.topics.length}</div>
+      <div class="stat__label">Topics</div>
+    </li>
+    <li class="stat">
+      <div class="stat__value">{s.tags.length}</div>
+      <div class="stat__label">Tags</div>
+    </li>
+    <li class="stat">
+      <div class="stat__value">{s.solved}</div>
+      <div class="stat__label">Fully written</div>
+    </li>
+  </ul>
+
+  {
+    topicsWithCount.length > 0 && (
+      <section aria-labelledby="topics-head">
+        <div class="section-head">
+          <h2 id="topics-head">Browse by topic</h2>
+          <a href={href("/problems/")}>All problems <Icon name="arrow-right" size="0.9em" /></a>
+        </div>
+        <ul class="pill-list">
+          {topicsWithCount.map((t) => (
+            <li>
+              <a class="badge badge--topic" href={href(`/topic/${t.key}/`)}>
+                {TOPIC_LABELS[t.key as Topic] ?? t.key}
+                <span class="faint">{t.count}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    latestProblems.length > 0 && (
+      <section aria-labelledby="latest-problems">
+        <div class="section-head">
+          <h2 id="latest-problems">Latest problems</h2>
+          <a href={href("/problems/")}>
+            {pluralize(s.problems, "problem")} <Icon name="arrow-right" size="0.9em" />
+          </a>
+        </div>
+        <EntryList entries={latestProblems} showKeyIdea showDate />
+      </section>
+    )
+  }
+
+  {
+    latestTheory.length > 0 && (
+      <section aria-labelledby="latest-theory">
+        <div class="section-head">
+          <h2 id="latest-theory">Theory &amp; techniques</h2>
+          <a href={href("/theory/")}>
+            {pluralize(s.theory, "note")} <Icon name="arrow-right" size="0.9em" />
+          </a>
+        </div>
+        <EntryList entries={latestTheory} showDate />
+      </section>
+    )
+  }
+
+  {
+    entries.length === 0 && (
+      <p class="empty">
+        The vault is empty. Add a <code>.md</code> file under
+        <code>content/problems/</code> or <code>content/theory/</code>, or run{" "}
+        <code>pnpm admin</code> to write one from the admin panel.
+      </p>
+    )
+  }
+</Base>

@@ -1,0 +1,41 @@
+---
+import Base from "../../layouts/Base.astro";
+import EntryList from "../../components/EntryList.astro";
+import { allEntries, stats } from "../../lib/entries";
+import { THEORY_SECTIONS, THEORY_SECTION_LABELS, type TheorySection } from "../../lib/taxonomy";
+import { pluralize } from "../../lib/utils";
+
+export async function getStaticPaths() {
+  const entries = await allEntries();
+  const present = new Set(entries.map((e) => e.section).filter(Boolean));
+  return THEORY_SECTIONS.filter((sec) => present.has(sec)).map((section) => ({
+    params: { section },
+    props: { section },
+  }));
+}
+
+interface Props {
+  section: TheorySection;
+}
+
+const { section } = Astro.props;
+const label = THEORY_SECTION_LABELS[section];
+const all = await allEntries();
+const entries = all.filter((e) => e.kind === "theory" && e.section === section);
+const s = await stats();
+---
+
+<Base
+  title={label}
+  description={`${entries.length} theory entries filed as ${label}.`}
+  topics={s.topics}
+  exams={s.exams}
+>
+  <div class="page-head">
+    <p class="page-head__eyebrow">Theory section</p>
+    <h1 class="page-head__title">{label}</h1>
+    <p class="page-head__lede">{pluralize(entries.length, "note")} filed as {label}.</p>
+  </div>
+
+  <EntryList entries={entries} showKeyIdea hideTopic showDate />
+</Base>

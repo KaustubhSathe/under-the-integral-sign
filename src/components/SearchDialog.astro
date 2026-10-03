@@ -1,0 +1,124 @@
+---
+/**
+ * Client-side search. Pagefind indexes the built site, so search only works
+ * after `pnpm build` (or `pnpm preview`). In `pnpm dev` the dialog degrades to
+ * a plain explanation plus links, instead of appearing broken.
+ */
+---
+
+<dialog id="site-search" class="search-dialog" aria-labelledby="site-search-title">
+  <div class="search-dialog__head">
+    <h2 id="site-search-title">Search the vault</h2>
+    <span style="flex:1"></span>
+    <button type="button" class="theme-toggle" data-search-close aria-label="Close search">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+  <div class="search-dialog__body">
+    <div id="search-container"></div>
+    <p class="search-dialog__fallback" id="search-fallback" hidden>
+      The search index is generated at build time, so it is unavailable while running
+      <code>astro dev</code>. Run <code>pnpm build &amp;&amp; pnpm preview</code> to search locally —
+      or browse by <a href={`${import.meta.env.BASE_URL}/topic/algebra/`}>topic</a> or
+      <a href={`${import.meta.env.BASE_URL}/exam/imo/`}>exam</a> meanwhile.
+    </p>
+  </div>
+</dialog>
+
+<script>
+  const dialog = document.getElementById("site-search") as HTMLDialogElement | null;
+  const container = document.getElementById("search-container");
+  const fallback = document.getElementById("search-fallback");
+  let loaded = false;
+  let loading: Promise<void> | null = null;
+
+  /** Load the Pagefind UI bundle once, on first open. */
+  function loadPagefind(): Promise<void> {
+    if (loaded) return Promise.resolve();
+    if (loading) return loading;
+
+    loading = (async () => {
+      const base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+      const cssHref = `${base}/pagefind/pagefind-ui.css`;
+      const jsHref = `${base}/pagefind/pagefind-ui.js`;
+
+      // Probe the stylesheet first: if the index was never built, bail out early
+      // rather than triggering a 404 for the script too.
+      const probe = await fetch(cssHref, { method: "HEAD" }).catch(() => null);
+      if (!probe || !probe.ok) throw new Error("pagefind assets not built");
+
+      if (!document.querySelector(`link[href="${cssHref}"]`)) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = cssHref;
+        document.head.appendChild(link);
+      }
+      await new Promise<void>((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = jsHref;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error("pagefind ui failed to load"));
+        document.head.appendChild(s);
+      });
+
+      const PagefindUI = (window as any).PagefindUI;
+      if (typeof PagefindUI !== "function" || !container) throw new Error("PagefindUI missing");
+
+      new PagefindUI({
+        element: "#search-container",
+        showSubResults: true,
+        showImages: false,
+        resetStyles: false,
+        translations: {
+          placeholder: "Cauchy–Schwarz, IMO 2019, contour integral…",
+          zero_results: "No results for [SEARCH_TERM]. Try a broader term.",
+        },
+      });
+      loaded = true;
+    })();
+
+    return loading;
+  }
+
+  function openSearch() {
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+    loadPagefind()
+      .then(() => {
+        fallback?.setAttribute("hidden", "");
+        const input = container?.querySelector<HTMLInputElement>("input.pagefind-ui__search-input");
+        input?.focus();
+      })
+      .catch(() => {
+        fallback?.removeAttribute("hidden");
+      });
+  }
+
+  document.querySelectorAll("[data-search-open]").forEach((el) => {
+    el.addEventListener("click", (event) => {
+      event.preventDefault();
+      openSearch();
+    });
+  });
+
+  document.querySelectorAll("[data-search-close]").forEach((el) => {
+    el.addEventListener("click", () => dialog?.close());
+  });
+
+  // Click on the backdrop closes the dialog.
+  dialog?.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+
+  // Cmd/Ctrl-K and "/" open search, the way every docs site behaves.
+  document.addEventListener("keydown", (event) => {
+    const target = event.target as HTMLElement | null;
+    const typing =
+      target &&
+      (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+    if ((event.key === "k" && (event.metaKey || event.ctrlKey)) || (event.key === "/" && !typing)) {
+      event.preventDefault();
+      openSearch();
+    }
+  });
+</script>

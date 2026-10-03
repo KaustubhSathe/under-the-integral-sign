@@ -1,0 +1,59 @@
+---
+import Badge from "./Badge.astro";
+import Icon from "./Icon.astro";
+import type { EntryRef } from "../lib/entries";
+import { DIFFICULTY_STARS, DIFFICULTY_LABELS, type Difficulty } from "../lib/taxonomy";
+import { href, formatDate, isoDate } from "../lib/utils";
+
+interface Props {
+  entry: EntryRef;
+  /** Show the three-line "key idea" strip instead of the summary. */
+  showKeyIdea?: boolean;
+  /** Hide the topic badge (useful on a topic page where it is redundant). */
+  hideTopic?: boolean;
+  /** Show the date. */
+  showDate?: boolean;
+}
+
+const { entry, showKeyIdea = false, hideTopic = false, showDate = false } = Astro.props;
+
+const stars = "★".repeat(entry.stars) + "☆".repeat(Math.max(0, 5 - entry.stars));
+const difficultyLabel = entry.difficulty
+  ? DIFFICULTY_LABELS[entry.difficulty as Difficulty]
+  : undefined;
+const date = entry.updated ?? entry.date;
+---
+
+<li class="card" data-kind={entry.kind} data-topic={entry.topic} data-difficulty={entry.difficulty ?? ""}>
+  <h3 class="card__title">
+    <a href={href(entry.href)}>{entry.title}</a>
+  </h3>
+
+  {
+    showKeyIdea && entry.keyIdea ? (
+      <p class="card__key-idea">{entry.keyIdea}</p>
+    ) : (
+      entry.summary && <p class="card__summary">{entry.summary}</p>
+    )
+  }
+
+  <div class="badge-row">
+    {!hideTopic && <Badge kind="topic" value={entry.topic} />}
+    {entry.kind === "theory" && <Badge kind="theory" value="theory" label={entry.section ?? "theory"} />}
+    {difficultyLabel && (
+      <span class="badge badge--difficulty" title={`Difficulty: ${difficultyLabel}`}>{stars}</span>
+    )}
+    {entry.status === "stub" && <span class="badge badge--status">stub</span>}
+  </div>
+
+  <div class="card__foot">
+    <span class="card__source">
+      {entry.source || (entry.kind === "theory" ? "Vault note" : "")}
+    </span>
+    {showDate && date && (
+      <time datetime={isoDate(date)} class="nowrap">
+        <Icon name="clock" size="0.9em" /> {formatDate(date)}
+      </time>
+    )}
+  </div>
+</li>

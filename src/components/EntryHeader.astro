@@ -1,0 +1,97 @@
+---
+import Badge from "./Badge.astro";
+import Icon from "./Icon.astro";
+import type { EntryRef } from "../lib/entries";
+import { DIFFICULTY_LABELS, EXAM_LABELS, THEORY_SECTION_LABELS, type Difficulty, type ExamType, type TheorySection } from "../lib/taxonomy";
+import { href, formatDate, isoDate, KIND_LABELS } from "../lib/utils";
+
+interface Props {
+  entry: EntryRef;
+  /** Raw frontmatter, for the fields EntryRef does not normalise. */
+  data: Record<string, any>;
+  headings?: { depth: number; slug: string; text: string }[];
+}
+
+const { entry, data } = Astro.props;
+
+const difficulty = entry.difficulty ? DIFFICULTY_LABELS[entry.difficulty as Difficulty] : undefined;
+const exam = entry.exam ? EXAM_LABELS[entry.exam as ExamType] : undefined;
+const section = entry.section ? THEORY_SECTION_LABELS[entry.section as TheorySection] : undefined;
+const date = entry.updated ?? entry.date;
+const kindHref = entry.kind === "problems" ? "/problems/" : "/theory/";
+---
+
+<header class="entry-header">
+  <nav class="breadcrumb" aria-label="Breadcrumb">
+    <ol>
+      <li><a href={href("/")}>Vault</a></li>
+      <li><a href={href(kindHref)}>{KIND_LABELS[entry.kind]}</a></li>
+      <li><a href={href(`/topic/${entry.topic}/`)}>{entry.topic.replace(/-/g, " ")}</a></li>
+      <li aria-current="page">{entry.title}</li>
+    </ol>
+  </nav>
+
+  <h1 class="entry-title">{entry.title}</h1>
+
+  <div class="badge-row">
+    <Badge kind="topic" value={entry.topic} />
+    {exam && <Badge kind="exam" value={entry.exam!} />}
+    {section && <Badge kind="theory" value={entry.section!} label={section} />}
+    {difficulty && (
+      <span class="badge badge--difficulty">
+        {"★".repeat(entry.stars)}{"☆".repeat(Math.max(0, 5 - entry.stars))} {difficulty}
+      </span>
+    )}
+    {entry.status !== "polished" && <span class="badge badge--status">{entry.status}</span>}
+  </div>
+
+  {entry.summary && <p class="page-head__lede" style="margin-top:0.9rem">{entry.summary}</p>}
+
+  <dl class="entry-meta">
+    {entry.source && (
+      <div>
+        <dt>Source</dt>
+        <dd>
+          {data.sourceUrl ? (
+            <a href={data.sourceUrl} rel="noopener noreferrer">{entry.source}</a>
+          ) : (
+            entry.source
+          )}
+        </dd>
+      </div>
+    )}
+    {entry.year && (
+      <div>
+        <dt>Year</dt>
+        <dd>{entry.year}</dd>
+      </div>
+    )}
+    {data.answer && (
+      <div>
+        <dt>Answer</dt>
+        <dd><span class="mono">{data.answer}</span></dd>
+      </div>
+    )}
+    {entry.tags.length > 0 && (
+      <div>
+        <dt>Tags</dt>
+        <dd class="badge-row">
+          {entry.tags.map((t: string) => <Badge kind="tag" value={t} />)}
+        </dd>
+      </div>
+    )}
+    {date && (
+      <div>
+        <dt>Updated</dt>
+        <dd><time datetime={isoDate(date)}>{formatDate(date)}</time></dd>
+      </div>
+    )}
+  </dl>
+</header>
+
+{entry.keyIdea && (
+  <aside class="callout" style="margin-bottom:2rem">
+    <p class="callout__title"><Icon name="lightbulb" size="0.9em" /> Key idea</p>
+    <p style="margin:0">{entry.keyIdea}</p>
+  </aside>
+)}

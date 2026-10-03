@@ -1,0 +1,31 @@
+{
+  "name": "under-the-integral-sign",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A personal mathematics vault: problems and theory for JEE Advanced, RMO, INMO, IMO, Putnam, Integration Bee and undergraduate mathematics.",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && pagefind --site dist",
+    "build:site": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "admin": "pnpm --dir tools/admin start",
+    "new": "node tools/new-entry.mjs",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.1",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.5",
+    "astro-pagefind": "^2.0.1",
+    "katex": "^0.19.0",
+    "rehype-katex": "^7.0.1",
+    "remark-math": "^6.0.0"
+  },
+  "devDependencies": {
+    "pagefind": "^1.4.0"
+  }
+}

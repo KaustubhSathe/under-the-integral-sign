@@ -1,0 +1,98 @@
+---
+import Base from "../layouts/Base.astro";
+import { stats } from "../lib/entries";
+import { SITE } from "../lib/site";
+import { href, count } from "../lib/utils";
+
+const s = await stats();
+const hasContent = s.problems + s.theory > 0;
+---
+
+<Base
+  title="About"
+  description={`About ${SITE.name} — what it is, how it is built, and how each entry is written up.`}
+  topics={s.topics}
+  exams={s.exams}
+>
+  <div class="page-head">
+    <p class="page-head__eyebrow">Colophon</p>
+    <h1 class="page-head__title">About this vault</h1>
+    <p class="page-head__lede">
+      A personal mathematics vault: problems and theory I want to keep, written up
+      properly enough that future-me can relearn from them.
+    </p>
+  </div>
+
+  <div class="prose">
+    <h2>What is here</h2>
+    <p>
+      Competition material — JEE Advanced, RMO, INMO, IMO, Putnam, integration bee
+      — alongside undergraduate-level theory. Every problem entry records the
+      source, the <strong>key idea</strong> that unlocks it, and a complete
+      solution. Every theory entry records a statement, a proof, when to reach for
+      the tool, and where it fails.
+    </p>
+    <p>
+      Currently {count(s.problems, "problem", "problems")} and{" "}
+      {count(s.theory, "theory note", "theory notes")} across {count(s.topics.length, "topic", "topics")}.
+    </p>
+
+    <h2>How it is written</h2>
+    <p>
+      Two rules, both learned the hard way:
+    </p>
+    <ol>
+      <li>
+        <strong>State the key idea before the solution.</strong> A solution you can
+        read is not the same as a problem you can solve. The one line that makes the
+        problem fall over is the part worth remembering.
+      </li>
+      <li>
+        <strong>Write down what is wrong or unfinished.</strong> If a proof step is
+        hand-waved, if a transcription looks inconsistent with the official source,
+        if a construction was abandoned halfway — that goes in the entry, not in a
+        silent rewrite. The gaps are information.
+      </li>
+    </ol>
+
+    <h2>How it is built</h2>
+    <p>
+      Completely static. Every entry is a Markdown file with YAML frontmatter, kept
+      in a git repository. A build step turns those files into HTML with mathematics
+      pre-rendered to KaTeX at build time, so there is no MathJax script and no
+      layout shift. There is no database and no server-side code.
+    </p>
+    <ul>
+      <li>Content: <code>content/problems/**.md</code> and <code>content/theory/**.md</code></li>
+      <li>Engine: Astro, with <code>remark-math</code> and <code>rehype-katex</code></li>
+      <li>Search: a static Pagefind index built from the HTML</li>
+      <li>Editing: a local admin panel, reachable only from my machine</li>
+    </ul>
+    <p>
+      Because the site is static, there is nothing to log into and nothing to
+      attack: the admin panel is a separate process bound to localhost and never
+      deployed. Readers get HTML.
+    </p>
+
+    <h2>Corrections and sources</h2>
+    <p>
+      Problems remain the property of their original sources — contests, textbooks
+      and their authors. What is mine here is the exposition: the choice of key
+      idea, the solutions, and the commentary. Where a problem is transcribed from
+      a competition, the source is named, and any doubt about the transcription is
+      flagged in the entry itself.
+    </p>
+    <p>
+      Found an error? The repository is at{" "}
+      <a href={SITE.repo} rel="noopener noreferrer">{SITE.repo.replace(/^https?:\/\//, "")}</a>
+      — an issue or a pull request is welcome.
+    </p>
+
+    {!hasContent && (
+      <p class="empty">
+        This vault is still empty. Add Markdown files under <code>content/</code>,
+        or run <code>pnpm admin</code> to start writing.
+      </p>
+    )}
+  </div>
+</Base>

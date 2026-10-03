@@ -1,0 +1,204 @@
+---
+import "../styles/global.css";
+import "katex/dist/katex.min.css";
+import Icon from "../components/Icon.astro";
+import SideNav from "../components/SideNav.astro";
+import SearchDialog from "../components/SearchDialog.astro";
+import { SITE } from "../lib/site";
+import { href } from "../lib/utils";
+import type { Counted } from "../lib/entries";
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** "article" for problems/theory, "website" elsewhere. */
+  type?: "website" | "article";
+  /** Sidebar counts + topic/exam lists, passed by pages that have them. */
+  topics?: Counted[];
+  exams?: Counted[];
+  /** Keep filtered/duplicate views out of search engines. */
+  noindex?: boolean;
+  /** Extra <head> content (e.g. page-specific meta). */
+  image?: string;
+  published?: Date;
+  updated?: Date;
+  /** Remove the width cap for index pages that want a wider grid. */
+  wide?: boolean;
+}
+
+const {
+  title,
+  description = SITE.description,
+  type = "website",
+  topics = [],
+  exams = [],
+  noindex = false,
+  image,
+  published,
+  updated,
+  wide = false,
+} = Astro.props;
+
+const pageTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.tagline}`;
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+const ogImage = image ? new URL(image, Astro.site ?? Astro.url.origin).href : undefined;
+const currentPath = Astro.url.pathname.replace(/\/$/, "");
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const rel = currentPath.startsWith(base) ? currentPath.slice(base.length) || "/" : currentPath;
+---
+
+<!doctype html>
+<html lang={SITE.locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    <link rel="alternate" type="application/rss+xml" title={`${SITE.name} — RSS`} href={href("/rss.xml")} />
+    <link rel="icon" href={href("/favicon.svg")} type="image/svg+xml" />
+    <link rel="sitemap" href={href("/sitemap-index.xml")} />
+
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    {published && <meta property="article:published_time" content={published.toISOString()} />}
+    {updated && <meta property="article:modified_time" content={updated.toISOString()} />}
+    <meta name="twitter:card" content={ogImage ? "summary_large_image" : "summary"} />
+    <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14161a" media="(prefers-color-scheme: dark)" />
+
+    <script is:inline>
+      // Apply the saved theme before first paint so there is no flash of the
+      // wrong colours. Wrapped in try/catch because a cleared cookie jar or a
+      // privacy mode throwing on localStorage must not break the page.
+      (function () {
+        try {
+          var stored = localStorage.getItem("vault-theme");
+          if (stored === "light" || stored === "dark") {
+            document.documentElement.setAttribute("data-theme", stored);
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="shell">
+      <header class="site-header" data-pagefind-ignore>
+        <div class="site-header__inner">
+          <button
+            type="button"
+            class="menu-toggle"
+            id="menu-toggle"
+            aria-label="Toggle section navigation"
+            aria-expanded="false"
+            aria-controls="sidebar"
+          >
+            <Icon name="menu" size={18} />
+          </button>
+
+          <a class="brand" href={href("/")}>
+            <Icon name="integral" size={26} class="brand__mark" />
+            <span>
+              <span class="brand__text">{SITE.name}</span><br />
+              <span class="brand__sub">{SITE.tagline}</span>
+            </span>
+          </a>
+
+          <span class="site-header__spacer"></span>
+
+          <div class="header-actions">
+            <button type="button" class="header-link" data-search-open aria-label="Search the vault">
+              <Icon name="search" size="0.95em" /> Search
+            </button>
+            <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch colour theme">
+              <svg class="icon-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+              </svg>
+              <svg class="icon-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" hidden>
+                <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <aside class="site-sidebar" id="sidebar">
+        <SideNav topics={topics} exams={exams} />
+      </aside>
+
+      <main class="site-main" id="main">
+        <div class:list={["wrap", wide && "wrap--wide"]} data-pagefind-body>
+          <slot />
+        </div>
+      </main>
+
+      <footer class="site-footer" data-pagefind-ignore>
+        <div class="site-footer__inner">
+          <p class="site-footer__note" style="margin:0">
+            <strong>{SITE.name}</strong> — {SITE.tagline}. Written and maintained by {SITE.author}.
+            Problems remain the property of their original sources.
+          </p>
+          <p style="margin:0">
+            <a href={href("/about/")}>About</a> ·
+            <a href={href("/rss.xml")}>RSS</a> ·
+            <a href={SITE.repo} rel="noopener noreferrer">Source</a>
+          </p>
+        </div>
+      </footer>
+    </div>
+
+    <SearchDialog />
+
+    <script>
+      // --- theme toggle -----------------------------------------------------
+      const root = document.documentElement;
+      const toggle = document.getElementById("theme-toggle");
+      const sun = toggle?.querySelector<SVGElement>(".icon-sun");
+      const moon = toggle?.querySelector<SVGElement>(".icon-moon");
+
+      function syncToggle() {
+        const isDark =
+          root.getAttribute("data-theme") === "dark" ||
+          (!root.hasAttribute("data-theme") &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (sun) sun.hidden = isDark;
+        if (moon) moon.hidden = !isDark;
+        toggle?.setAttribute("aria-pressed", String(isDark));
+      }
+
+      toggle?.addEventListener("click", () => {
+        const isDark =
+          root.getAttribute("data-theme") === "dark" ||
+          (!root.hasAttribute("data-theme") &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches);
+        const next = isDark ? "light" : "dark";
+        root.setAttribute("data-theme", next);
+        try {
+          localStorage.setItem("vault-theme", next);
+        } catch (e) {}
+        syncToggle();
+      });
+
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncToggle);
+      syncToggle();
+
+      // --- mobile navigation panel -----------------------------------------
+      const menuToggle = document.getElementById("menu-toggle");
+      const sidebar = document.getElementById("sidebar");
+      menuToggle?.addEventListener("click", () => {
+        const open = sidebar?.getAttribute("data-open") === "true";
+        sidebar?.setAttribute("data-open", String(!open));
+        menuToggle.setAttribute("aria-expanded", String(!open));
+      });
+    </script>
+  </body>
+</html>

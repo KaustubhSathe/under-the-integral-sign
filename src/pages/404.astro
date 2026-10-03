@@ -1,0 +1,29 @@
+---
+import Base from "../layouts/Base.astro";
+import { href } from "../lib/utils";
+---
+
+<Base title="Not found" description="That page is not in the vault." noindex>
+  <div class="page-head">
+    <p class="page-head__eyebrow">404</p>
+    <h1 class="page-head__title">Not in the vault</h1>
+    <p class="page-head__lede">
+      This page does not exist — possibly a problem I renamed, or a link that was
+      never finished.
+    </p>
+  </div>
+
+  <div class="prose">
+    <p>Try one of these instead:</p>
+    <ul>
+      <li><a href={href("/problems/")}>All problems</a></li>
+      <li><a href={href("/theory/")}>All theory</a></li>
+      <li><a href={href("/tags/")}>Tags</a></li>
+      <li><a href={href("/")}>Home</a></li>
+    </ul>
+    <p class="faint">
+      Tip: press <kbd>/</kbd> anywhere to search — the index is built from the
+      published HTML, so it finds titles and full text.
+    </p>
+  </div>
+</Base>

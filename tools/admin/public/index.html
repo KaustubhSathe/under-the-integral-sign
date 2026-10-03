@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Vault admin</title>
+    <link rel="stylesheet" href="/admin.css" />
+  </head>
+  <body>
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Login                                                               -->
+    <!-- ------------------------------------------------------------------ -->
+    <div class="login" id="login">
+      <form class="login__card" id="loginForm">
+        <h1>Vault admin</h1>
+        <p>
+          Local-only editor for the mathematics vault. Enter the password from
+          <code>ADMIN_PASSWORD</code> in your <code>.env</code> file.
+        </p>
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" autofocus />
+        <p class="status" id="loginStatus" role="alert"></p>
+        <button class="btn btn--primary" type="submit" style="width: 100%">Sign in</button>
+      </form>
+    </div>
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Editor application                                                  -->
+    <!-- ------------------------------------------------------------------ -->
+    <div class="app" id="app" data-ready="false">
+      <header class="topbar">
+        <div class="topbar__brand">
+          Vault admin <span id="repoName"></span>
+        </div>
+        <div class="topbar__spacer"></div>
+        <span class="badge" id="saveState">no entry open</span>
+        <button class="btn btn--primary" id="saveBtn" disabled>Save <span style="opacity:0.7">(⌘S)</span></button>
+        <button class="btn" id="newBtn">New</button>
+        <button class="btn btn--ghost" id="logoutBtn">Sign out</button>
+      </header>
+
+      <aside class="sidebar" id="sidebar">
+        <div class="side__head">
+          Problems
+          <button class="btn btn--sm" data-new-kind="problems">+ new</button>
+        </div>
+        <div id="listProblems"></div>
+        <div class="side__head">
+          Theory
+          <button class="btn btn--sm" data-new-kind="theory">+ new</button>
+        </div>
+        <div id="listTheory"></div>
+      </aside>
+
+      <section class="editor" id="editorPane">
+        <div id="editorEmpty" class="empty" style="color: var(--text-3); padding: 2rem 0; text-align: center">
+          Select an entry on the left, or create a new one.
+        </div>
+
+        <form id="entryForm" hidden>
+          <div class="editor__head">
+            <input type="search" id="titleFilter" placeholder="filter entries…" style="max-width: 12rem" hidden />
+            <span class="badge" id="kindBadge">—</span>
+            <span class="badge" id="pathBadge" title="file path">—</span>
+            <span class="topbar__spacer"></span>
+            <button type="button" class="btn btn--sm" id="openSiteBtn" title="Open the rendered page">
+              Rendered page ↗
+            </button>
+            <button type="button" class="btn btn--sm" id="renameBtn">Rename file…</button>
+            <button type="button" class="btn btn--sm btn--danger" id="deleteBtn">Delete</button>
+          </div>
+
+          <div id="fields"></div>
+
+          <div class="section">Body (Markdown)</div>
+          <div class="toolbar" id="bodyToolbar">
+            <button type="button" class="btn" data-wrap="**" title="bold">B</button>
+            <button type="button" class="btn" data-wrap="*" title="italic">I</button>
+            <button type="button" class="btn" data-wrap="`" title="inline code">code</button>
+            <button type="button" class="btn" data-insert="## " title="heading">H2</button>
+            <button type="button" class="btn" data-insert="$$&#10;&#10;$$" title="display math">$$ … $$</button>
+            <button type="button" class="btn" data-insert="$$&#10;\\begin{aligned}&#10;&#10;\\end{aligned}&#10;$$" title="aligned block">aligned</button>
+            <button type="button" class="btn" data-insert="<details>&#10;<summary>Solution</summary>&#10;&#10;&#10;&#10;</details>" title="collapsible solution">details</button>
+            <button type="button" class="btn" data-insert="&gt; **Note.** " title="callout">callout</button>
+            <button type="button" class="btn" data-insert="- " title="bullet list">list</button>
+            <button type="button" class="btn" data-insert="| a | b |&#10;| --- | --- |&#10;|  |  |" title="table">table</button>
+            <button type="button" class="btn" id="imageBtn" title="upload an image">image…</button>
+          </div>
+          <textarea id="body" spellcheck="false" placeholder="Write the problem statement, then the solution…"></textarea>
+
+          <div class="status" id="status" role="status"></div>
+
+          <div class="section">Images</div>
+          <div class="dropzone" id="dropzone">
+            Drop an image here, or paste one into the editor. Files go to
+            <code>public/images/</code> and the URL is inserted for you.
+          </div>
+          <div class="images" id="imageList"></div>
+
+          <details class="help" id="helpBox">
+            <summary>Markdown &amp; math conventions</summary>
+            <div id="helpContent"></div>
+          </details>
+        </form>
+      </section>
+
+      <section class="previewpane">
+        <div class="previewpane__bar">
+          <span id="previewLabel">Live preview</span>
+          <span class="topbar__spacer"></span>
+          <label style="display: inline-flex; align-items: center; gap: 0.3rem">
+            <input type="checkbox" id="autoRefresh" checked /> auto
+          </label>
+          <button class="btn btn--sm" id="refreshPreview">Refresh</button>
+        </div>
+        <iframe id="preview" title="Rendered preview" hidden></iframe>
+        <div class="previewpane__empty" id="previewEmpty">
+          Run <code>pnpm dev</code> in another terminal to see the rendered page here.
+        </div>
+      </section>
+
+      <footer class="gitbar" id="gitbar">
+        <div class="git__row">
+          <strong>Git</strong>
+          <span class="badge" id="gitBranch">—</span>
+          <span class="badge" id="gitRemote" title="remote">—</span>
+          <span class="topbar__spacer"></span>
+          <button class="btn btn--sm" id="refreshGit">Refresh</button>
+          <button class="btn btn--sm" id="pushBtn">Push</button>
+        </div>
+        <div class="git__row">
+          <input type="text" id="commitMsg" placeholder="Commit message, e.g. add Putnam 2013 B3 write-up" />
+          <button class="btn btn--sm btn--primary" id="commitBtn">Commit all changes</button>
+        </div>
+        <div class="git__files" id="gitFiles"></div>
+        <details id="diffBox" hidden>
+          <summary style="cursor: pointer; color: var(--text-3); font-size: 0.78rem">Show diff</summary>
+          <pre class="diff" id="diffText"></pre>
+        </details>
+        <div class="git__log" id="gitLog"></div>
+      </footer>
+    </div>
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- New-entry dialog                                                    -->
+    <!-- ------------------------------------------------------------------ -->
+    <dialog class="modal" id="newDialog">
+      <form method="dialog" class="modal__body" id="newForm">
+        <h2>New entry</h2>
+        <p>Pick what you are writing. The file is created once you save.</p>
+        <div class="field">
+          <div class="field__label">Kind</div>
+          <select id="newKind">
+            <option value="problems">Problem</option>
+            <option value="theory">Theory note</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field__label">Title</div>
+          <input type="text" id="newTitle" placeholder="e.g. Nesbitt's inequality via Engel form" />
+          <div class="field__hint">Used for the filename slug and the page title. Editable later.</div>
+        </div>
+        <div class="field">
+          <div class="field__label">Primary topic</div>
+          <select id="newTopic"></select>
+        </div>
+        <div class="modal__actions">
+          <button class="btn" value="cancel" type="button" id="newCancel">Cancel</button>
+          <button class="btn btn--primary" value="create" type="submit">Create</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Generic confirm dialog                                              -->
+    <!-- ------------------------------------------------------------------ -->
+    <dialog class="modal" id="confirmDialog">
+      <div class="modal__body">
+        <h2 id="confirmTitle">Are you sure?</h2>
+        <p id="confirmText"></p>
+        <div class="modal__actions">
+          <button class="btn" id="confirmNo">Cancel</button>
+          <button class="btn btn--danger" id="confirmYes">Confirm</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- ------------------------------------------------------------------ -->
+    <!-- Rename dialog                                                       -->
+    <!-- ------------------------------------------------------------------ -->
+    <dialog class="modal" id="renameDialog">
+      <form method="dialog" class="modal__body" id="renameForm">
+        <h2>Rename file</h2>
+        <p>Changes the filename slug. The rendered URL changes with it.</p>
+        <div class="field">
+          <div class="field__label">New slug</div>
+          <input type="text" id="renameSlug" />
+        </div>
+        <div class="modal__actions">
+          <button class="btn" type="button" id="renameCancel">Cancel</button>
+          <button class="btn btn--primary" type="submit">Rename</button>
+        </div>
+      </form>
+    </dialog>
+
+    <input type="file" id="filePicker" accept="image/*" hidden />
+    <script src="/admin.js" type="module"></script>
+  </body>
+</html>

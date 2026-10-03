@@ -1,0 +1,45 @@
+---
+import Base from "../../layouts/Base.astro";
+import EntryList from "../../components/EntryList.astro";
+import { allEntries, countBy, stats } from "../../lib/entries";
+import { href, pluralize } from "../../lib/utils";
+import { THEORY_SECTIONS, THEORY_SECTION_LABELS, type TheorySection } from "../../lib/taxonomy";
+
+const entries = (await allEntries()).filter((e) => e.kind === "theory");
+const s = await stats();
+const sections = countBy(entries, (e) => (e.section ? [e.section] : []));
+const presentSections = THEORY_SECTIONS.filter((sec) => sections.some((x) => x.key === sec));
+---
+
+<Base
+  title="Theory"
+  description="Lemmas, theorems and techniques used across the vault — statements, proofs, when to reach for each tool, and where it fails."
+  topics={s.topics}
+  exams={s.exams}
+>
+  <div class="page-head">
+    <p class="page-head__eyebrow">Collection</p>
+    <h1 class="page-head__title">Theory &amp; techniques</h1>
+    <p class="page-head__lede">
+      {pluralize(entries.length, "note")} — statements with proofs, the reasoning behind
+      them, common failure modes, and worked micro-examples.
+    </p>
+  </div>
+
+  {
+    presentSections.length > 0 && (
+      <ul class="pill-list" style="margin-bottom:1.75rem">
+        {presentSections.map((sec) => (
+          <li>
+            <a class="badge" href={href(`/sections/${sec}/`)}>
+              {THEORY_SECTION_LABELS[sec as TheorySection]}
+              <span class="faint">{sections.find((x) => x.key === sec)?.count}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
+  <EntryList entries={entries} showKeyIdea showDate emptyMessage="No theory notes yet." />
+</Base>

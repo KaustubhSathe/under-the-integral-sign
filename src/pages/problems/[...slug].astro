@@ -1,0 +1,100 @@
+---
+import { render, getCollection, type CollectionEntry } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import EntryHeader from "../../components/EntryHeader.astro";
+import EntryList from "../../components/EntryList.astro";
+import Toc from "../../components/Toc.astro";
+import { allEntries, relatedTo, stats, type EntryRef } from "../../lib/entries";
+import { DIFFICULTY_STARS } from "../../lib/taxonomy";
+
+export async function getStaticPaths() {
+  const problems = await getCollection("problems", (e) => !e.data.draft);
+  return problems.map((entry) => ({
+    // `entry.id` has no extension and keeps subdirectories:
+    // "analysis/riemann-sum-arctangent-limit".
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+interface Props {
+  entry: CollectionEntry<"problems">;
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await render(entry);
+
+const pool = await allEntries();
+const s = await stats();
+
+// Normalise this entry so relatedTo() and the header share one shape.
+// `entry.id` is content-relative ("analysis/riemann-..."), i.e. EntryRef.path.
+const found = pool.find((e) => e.kind === "problems" && e.path === entry.id);
+// Fall back to building the ref from frontmatter: a mismatch here would
+// otherwise crash the build with a confusing error.
+const d = entry.data;
+const self: EntryRef = found ?? {
+  id: `problems/${entry.id}`,
+  kind: "problems",
+  slug: entry.id.slice(entry.id.lastIndexOf("/") + 1),
+  path: entry.id,
+  href: `/problems/${entry.id}/`,
+  title: d.title,
+  summary: d.summary,
+  topic: d.topic,
+  topics: [d.topic, ...(d.topics ?? []).filter((t) => t !== d.topic)],
+  tags: d.tags ?? [],
+  exam: d.exam,
+  source: d.source,
+  year: d.year,
+  difficulty: d.difficulty,
+  status: d.status,
+  date: d.date,
+  updated: d.updated,
+  keyIdea: d.keyIdea,
+  stars: DIFFICULTY_STARS[d.difficulty] ?? 0,
+};
+
+const related = relatedTo(self, pool, 4, d.related ?? []).filter((e) => e.id !== self.id);
+const description = d.summary || d.title;
+---
+
+<Base
+  title={entry.data.title}
+  description={description}
+  type="article"
+  topics={s.topics}
+  exams={s.exams}
+  published={entry.data.date}
+  updated={entry.data.updated ?? entry.data.date}
+>
+  <article class="prose-with-toc" data-pagefind-ignore>
+    <div class="prose">
+      <EntryHeader entry={self} data={entry.data as any} headings={headings} />
+
+      {entry.data.hints && entry.data.hints.length > 0 && (
+        <details class="solution">
+          <summary>Spoiler-free hints ({entry.data.hints.length})</summary>
+          <ol>
+            {entry.data.hints.map((h: string) => (
+              <li>{h}</li>
+            ))}
+          </ol>
+        </details>
+      )}
+
+      <Content />
+
+      {
+        related.length > 0 && (
+          <section aria-labelledby="related-head">
+            <h2 id="related-head">Related in the vault</h2>
+            <EntryList entries={related} showKeyIdea />
+          </section>
+        )
+      }
+    </div>
+
+    <Toc headings={headings} />
+  </article>
+</Base>

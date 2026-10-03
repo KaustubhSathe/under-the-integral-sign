@@ -1,0 +1,36 @@
+---
+import Base from "../../layouts/Base.astro";
+import EntryList from "../../components/EntryList.astro";
+import { allEntries, stats } from "../../lib/entries";
+import { count, titleize } from "../../lib/utils";
+
+export async function getStaticPaths() {
+  const entries = await allEntries();
+  const tags = [...new Set(entries.flatMap((e) => e.tags))];
+  return tags.map((tag) => ({ params: { tag }, props: { tag } }));
+}
+
+interface Props {
+  tag: string;
+}
+
+const { tag } = Astro.props;
+const all = await allEntries();
+const entries = all.filter((e) => e.tags.includes(tag));
+const s = await stats();
+---
+
+<Base
+  title={`Tagged “${tag}”`}
+  description={`${count(entries.length, "entry", "entries")} tagged ${tag}.`}
+  topics={s.topics}
+  exams={s.exams}
+>
+  <div class="page-head">
+    <p class="page-head__eyebrow">Tag</p>
+    <h1 class="page-head__title">{titleize(tag)}</h1>
+    <p class="page-head__lede">{count(entries.length, "entry", "entries")} with this tag.</p>
+  </div>
+
+  <EntryList entries={entries} showKeyIdea showDate />
+</Base>
