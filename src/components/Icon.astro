@@ -10,7 +10,6 @@ export type IconName =
   | "moon"
   | "menu"
   | "close"
-  | "rss"
   | "arrow-right"
   | "arrow-left"
   | "clock"
@@ -84,14 +83,6 @@ const dim = typeof size === "number" ? `${size}px` : size;
     name === "close" && (
       <>
         <path d="M6 6l12 12M18 6L6 18" />
-      </>
-    )
-  }
-  {
-    name === "rss" && (
-      <>
-        <path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16" />
-        <circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
       </>
     )
   }

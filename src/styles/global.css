@@ -1283,7 +1283,7 @@ details.solution[open] > summary::before {
   background: var(--surface-2);
 }
 
-/* ------------------------------------------------------------------- rss -- */
+/* ------------------------------------------------------------ home stats -- */
 .stat-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));

@@ -1,10 +1,12 @@
 /**
  * Site identity — the only file you need to touch to rebrand the vault.
- * Keep `SITE.url` and `SITE.base` in sync with astro.config.mjs.
+ *
+ * `url` and `base` are kept here for reference; the build reads the real values
+ * from astro.config.mjs (`site`/`base`), which CI overrides per repository.
  */
 export const SITE = {
   name: "Under the Integral Sign",
-  /** Shown in the header next to the mark, and in the RSS feed. */
+  /** Shown in the header next to the mark. */
   tagline: "a mathematics vault",
   description:
     "Personal vault of mathematics: olympiad and competition problems (RMO, INMO, IMO, Putnam, JEE Advanced), integration bee material, and undergraduate theory — with the key idea written down for every problem.",

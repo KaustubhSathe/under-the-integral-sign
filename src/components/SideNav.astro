@@ -1,5 +1,4 @@
 ---
-import Icon from "./Icon.astro";
 import { TOPICS, TOPIC_LABELS, EXAM_TYPES, EXAM_LABELS, type Topic, type ExamType } from "../lib/taxonomy";
 import { href } from "../lib/utils";
 import type { Counted } from "../lib/entries";
@@ -99,15 +98,4 @@ const here = stripBase(current);
       </div>
     )
   }
-
-  <div class="nav-group">
-    <p class="nav-group__title">Feed</p>
-    <ul class="nav-list">
-      <li>
-        <a href={href("/rss.xml")}>
-          <span><Icon name="rss" size="0.85em" /> RSS</span>
-        </a>
-      </li>
-    </ul>
-  </div>
 </nav>
