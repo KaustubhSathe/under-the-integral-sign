@@ -173,6 +173,17 @@ a {
   text-align: center;
   padding: 2rem;
 }
+/*
+ * `display: grid` above beats the browser's default `[hidden] { display: none }`,
+ * because a class selector is more specific than the attribute selector in the UA
+ * stylesheet. Without this the "hidden" empty-state div kept claiming its share of
+ * the flex row, so the iframe got only about half the pane height and the framed
+ * page looked cut off.
+ */
+.previewpane__empty[hidden],
+.previewpane iframe[hidden] {
+  display: none;
+}
 
 .gitbar {
   grid-area: git;
