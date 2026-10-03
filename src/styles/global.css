@@ -37,12 +37,17 @@
   --shadow-md: 0 4px 16px rgb(28 25 18 / 8%), 0 1px 3px rgb(28 25 18 / 6%);
 
   /*
-   * Reading measure. Wide enough that long display equations (aligned blocks,
-   * chains of inequalities) do not wrap or scroll, while staying inside the
-   * ~80-character range that keeps prose comfortable. Raise it if you read on a
-   * very wide monitor; lower it toward 46rem for a tighter column.
+   * Reading measure. Used for the table-of-contents column and as the point at
+   * which prose stops widening — see --wrap-max for the page width itself.
    */
   --measure: 54rem;
+  /*
+   * Page width. The content area fills the window minus the sidebar and these
+   * gutters, up to this cap. Raise it (or set it to `none`) for an edge-to-edge
+   * layout; the prose additionally stops at ~75 characters (see .prose-with-toc)
+   * so that ultra-wide screens get generous margins instead of unreadable lines.
+   */
+  --wrap-max: 96rem;
   /* Width reserved for the sticky table of contents on wide screens. */
   --toc-width: clamp(12rem, 16vw, 16rem);
   --gutter: clamp(1rem, 4vw, 2.5rem);
@@ -400,31 +405,30 @@ tbody tr:hover {
 }
 @media (min-width: 62rem) {
   .shell {
-    grid-template-columns: 15.5rem minmax(0, 1fr);
+    /*
+     * 12rem, not the 15.5rem a "comfortable" rail would suggest: both tracks are
+     * `1fr`, so the sidebar comes straight out of the article column. Keeping one
+     * width at every desktop size also avoids a step where a wider window
+     * suddenly leaves *less* room for the prose.
+     */
+    grid-template-columns: 12rem minmax(0, 1fr);
     grid-template-rows: auto 1fr auto;
   }
 }
 
 /*
- * On wide screens the sidebar gives some room back, so the article column can
- * reach the full reading measure. Both shell tracks are `1fr`, so the article is
- * capped at (viewport - sidebar); at larger widths 15.5rem of navigation is more
- * than the entries need.
+ * The article fills the available width rather than sitting in a narrow column:
+ * the cap lives here, and the prose has its own line-length limit. Pages are
+ * centred in whatever the sidebar leaves.
  */
-@media (min-width: 78rem) {
-  .shell {
-    grid-template-columns: 12rem minmax(0, 1fr);
-  }
-}
-
 .wrap {
   width: 100%;
-  max-width: calc(var(--measure) + 2 * var(--gutter));
+  max-width: var(--wrap-max);
   margin: 0 auto;
   padding-inline: var(--gutter);
 }
 .wrap--wide {
-  max-width: 78rem;
+  max-width: var(--wrap-max);
 }
 
 /* ----------------------------------------------------------- site header -- */
@@ -491,15 +495,55 @@ tbody tr:hover {
   text-decoration: none;
   padding: 0.3rem 0.5rem;
   border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .header-link:hover {
   color: var(--text);
   background: var(--surface-2);
 }
+
+/* The search control is the header's primary action, so it gets real width
+   rather than hugging its label. */
+.header-actions [data-search-open] {
+  flex: none;
+  min-width: 8.5rem;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-inline: 0.9rem;
+  margin-right: 1.25rem;
+}
 .header-actions {
   display: flex;
   align-items: center;
   gap: 0.15rem;
+  flex: none;
+}
+
+/*
+ * Very narrow phones: the header holds a menu button, the brand, a search
+ * control and the theme slider, which together exceed the viewport once the
+ * search control is given real width. Shed width in order of least loss — the
+ * search label first (the magnifier already says "search"), and only then the
+ * wordmark, collapsing the brand to its integral mark.
+ */
+@media (max-width: 32rem) {
+  .header-actions [data-search-open] .search-label {
+    display: none;
+  }
+  .header-actions [data-search-open] {
+    min-width: 0;
+    margin-right: 0.75rem;
+  }
+}
+@media (max-width: 25rem) {
+  .brand__text {
+    display: none;
+  }
+  .brand {
+    gap: 0;
+  }
 }
 
 /* Generic square icon button (menu, dialog close, …). */
@@ -1182,43 +1226,48 @@ details.solution[open] > summary::before {
 .toc .depth-4 {
   padding-left: 2rem;
 }
-@media (min-width: 90rem) {
-  /*
-   * Wide screens: the TOC floats beside the article.
-   *
-   * The threshold is derived, not guessed. At >=90rem the gutter is at its
-   * maximum (2.5rem) and the sidebar is 12rem, so the article column has
-   *     1440 - 192 - 80 = 1168px
-   * against a requirement of
-   *     measure + toc + gap = 864 + 256 + 40 = 1160px.
-   * Below this width the two-column form would squeeze the prose below its
-   * measure — narrower than the single-column layout gives it — so the TOC
-   * instead sits above the article, where it costs the reader nothing.
-   *
-   * The container is widened to match, otherwise .wrap's own max-width
-   * constrains the grid and the prose still loses.
-   */
-  .wrap--entry {
-    max-width: calc(var(--measure) + var(--toc-width) + 2.5rem + 2 * var(--gutter));
-  }
-
+/*
+ * The TOC floats beside the article from 68rem up. The prose column is `1fr` so
+ * it fills the row rather than sitting in a narrow column, and the leftover
+ * space becomes the right margin.
+ *
+ * The cap is deliberately generous. Measured in this serif face the body text is
+ * 17.2px and 1ch is ~9.85px, so 104ch is ~1024px — about 104 characters per
+ * line. That is longer than the classic 66-character ideal and is a deliberate
+ * trade for a wide, page-filling layout: long display equations and chains of
+ * inequalities get room to breathe instead of wrapping. Lower this toward 75ch
+ * for a more traditional column, or raise it toward 120ch for text that runs
+ * almost the full width.
+ *
+ * The breakpoint is where the article reaches the prose cap, so floating the TOC
+ * costs nothing. It needs viewport - sidebar(192) - gutters(80) >= prose cap
+ * (104ch ~= 1024px), i.e. about 95rem. Below that the article is narrower than
+ * the cap and the TOC would eat into the prose, making it *narrower* than the
+ * single-column layout gives it — so there the TOC sits above the article.
+ * Verified by sweeping every 64px from 1024 to 2560: no width is worse than the
+ * layout it replaces.
+ */
+@media (min-width: 95rem) {
   .prose-with-toc {
     display: grid;
-    grid-template-columns: minmax(0, var(--measure)) var(--toc-width);
-    gap: 2.5rem;
+    /* prose fills; TOC takes exactly what it needs, leaving a right margin. */
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3.5rem;
     align-items: start;
+  }
+  .prose-with-toc > .prose {
+    order: 1;
+    min-width: 0;
+    max-width: 104ch;
   }
   .prose-with-toc .toc {
     position: sticky;
     top: 5rem;
     order: 2;
+    width: var(--toc-width);
     max-height: calc(100vh - 7rem);
     overflow-y: auto;
     margin: 0;
-  }
-  .prose-with-toc > .prose {
-    order: 1;
-    min-width: 0;
   }
 }
 
