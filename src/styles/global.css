@@ -74,13 +74,6 @@
    * a few pixels under the header as you scroll.
    */
   --header-h: 3.6875rem;
-  /*
-   * Header + footer together, measured at 59px + 109px. The sidebar uses this to
-   * size itself to exactly fill the gap between them, so a short page does not
-   * leave the panel ending partway down. If the header grows (a longer tagline
-   * wrapping, say) or the footer's padding changes, re-measure both.
-   */
-  --chrome-h: 10.5rem;
   --radius: 10px;
   --radius-sm: 6px;
 
@@ -430,10 +423,25 @@ tbody tr:hover {
 .shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  /* Mobile only: keeps the footer at the bottom on a page shorter than the
+     screen. Desktop overrides this with a fixed height (see below). */
   min-height: 100vh;
   grid-template-rows: auto 1fr auto;
 }
 @media (min-width: 62rem) {
+  /*
+   * Desktop is an app shell: the grid is pinned to exactly one viewport tall and
+   * the ARTICLE scrolls inside it, rather than the whole document scrolling.
+   *
+   * That is what keeps the footer permanently visible. `position: fixed` would
+   * also pin it, but a fixed footer overlays whatever is underneath and its
+   * height changes with the text (109px at full width, 143px once the note wraps
+   * at ~700px), so it would cover the end of the article on narrower screens.
+   * With this approach the grid simply reserves the footer's real height.
+   *
+   * Below 62rem the shell goes back to normal document flow, because a
+   * permanently visible footer on a phone costs more than it gives.
+   */
   .shell {
     /*
      * The sidebar comes straight out of the article column, so its width is a
@@ -442,7 +450,9 @@ tbody tr:hover {
      * column can still hold the prose (see the min-width below).
      */
     grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    height: 100vh;
+    overflow: hidden;
   }
 }
 
@@ -722,23 +732,17 @@ tbody tr:hover {
 }
 @media (min-width: 62rem) {
   /*
-   * The panel fills its grid column full height. Three things are at work:
-   *
-   *  1. no `align-self: start` — that would shrink the panel to the height of
-   *     the nav and leave the rule and background stopping early;
-   *  2. `min-height` so that on a SHORT page the row still grows to fill the
-   *     space between the header and the footer. Without it the panel stops
-   *     wherever the article happens to end;
-   *  3. the nav inside is sticky and scrolls on its own, so the links stay
-   *     reachable while the article scrolls.
-   *
-   * --chrome-h is the header + footer + their borders, measured at 59px + 109px.
-   * If you change the header height or the footer padding, update it, or the
-   * panel will end slightly short or overshoot past the footer.
+   * The panel fills its grid column exactly. It no longer needs a min-height
+   * trick to reach the bottom: the shell is pinned to the viewport and the grid
+   * row is `minmax(0, 1fr)`, so the panel always spans from the header to the
+   * footer. The panel is its own scroll container, which keeps a long nav
+   * reachable while the article scrolls independently beside it.
    */
   .site-sidebar {
     display: block;
-    min-height: calc(100vh - var(--chrome-h));
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 /* Mobile: the same nav is revealed as a panel under the header. */
@@ -753,21 +757,6 @@ tbody tr:hover {
 }
 .site-sidebar__inner {
   padding: 1.4rem 1.1rem 3rem;
-}
-@media (min-width: 62rem) {
-  /*
-   * Sticky within the full-height panel, so the links stay reachable while the
-   * article scrolls but the panel behind them never ends partway down. The
-   * offset matches --header-h, not the 3.5rem min-height, or a sliver of the
-   * nav tucks under the header as you scroll.
-   */
-  .site-sidebar__inner {
-    position: sticky;
-    top: var(--header-h);
-    max-height: calc(100vh - var(--header-h));
-    overflow-y: auto;
-    overscroll-behavior: contain;
-  }
 }
 .nav-group + .nav-group {
   margin-top: 1.5rem;
@@ -817,6 +806,22 @@ tbody tr:hover {
 .site-main {
   min-width: 0;
   padding-block: 2rem 4rem;
+}
+@media (min-width: 62rem) {
+  /*
+   * The article column is the scroll container on desktop (see .shell). It needs
+   * an explicit height rather than `min-height`, or it would grow past the shell
+   * and push the footer off screen again.
+   *
+   * `scroll-padding-top` lives here, not on `html`, because anchor jumps scroll
+   * THIS box; without it a heading would land flush under the sticky header.
+   */
+  .site-main {
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-top: var(--header-h);
+  }
 }
 .page-head {
   margin-bottom: 2rem;
