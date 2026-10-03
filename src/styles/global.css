@@ -36,7 +36,15 @@
   --shadow-sm: 0 1px 2px rgb(28 25 18 / 6%), 0 1px 1px rgb(28 25 18 / 4%);
   --shadow-md: 0 4px 16px rgb(28 25 18 / 8%), 0 1px 3px rgb(28 25 18 / 6%);
 
-  --measure: 46rem;
+  /*
+   * Reading measure. Wide enough that long display equations (aligned blocks,
+   * chains of inequalities) do not wrap or scroll, while staying inside the
+   * ~80-character range that keeps prose comfortable. Raise it if you read on a
+   * very wide monitor; lower it toward 46rem for a tighter column.
+   */
+  --measure: 54rem;
+  /* Width reserved for the sticky table of contents on wide screens. */
+  --toc-width: clamp(12rem, 16vw, 16rem);
   --gutter: clamp(1rem, 4vw, 2.5rem);
   --radius: 10px;
   --radius-sm: 6px;
@@ -394,6 +402,18 @@ tbody tr:hover {
   .shell {
     grid-template-columns: 15.5rem minmax(0, 1fr);
     grid-template-rows: auto 1fr auto;
+  }
+}
+
+/*
+ * On wide screens the sidebar gives some room back, so the article column can
+ * reach the full reading measure. Both shell tracks are `1fr`, so the article is
+ * capped at (viewport - sidebar); at larger widths 15.5rem of navigation is more
+ * than the entries need.
+ */
+@media (min-width: 78rem) {
+  .shell {
+    grid-template-columns: 12rem minmax(0, 1fr);
   }
 }
 
@@ -1056,11 +1076,29 @@ details.solution[open] > summary::before {
 .toc .depth-4 {
   padding-left: 2rem;
 }
-@media (min-width: 78rem) {
-  /* On very wide screens the TOC can float beside the article. */
+@media (min-width: 90rem) {
+  /*
+   * Wide screens: the TOC floats beside the article.
+   *
+   * The threshold is derived, not guessed. At >=90rem the gutter is at its
+   * maximum (2.5rem) and the sidebar is 12rem, so the article column has
+   *     1440 - 192 - 80 = 1168px
+   * against a requirement of
+   *     measure + toc + gap = 864 + 256 + 40 = 1160px.
+   * Below this width the two-column form would squeeze the prose below its
+   * measure — narrower than the single-column layout gives it — so the TOC
+   * instead sits above the article, where it costs the reader nothing.
+   *
+   * The container is widened to match, otherwise .wrap's own max-width
+   * constrains the grid and the prose still loses.
+   */
+  .wrap--entry {
+    max-width: calc(var(--measure) + var(--toc-width) + 2.5rem + 2 * var(--gutter));
+  }
+
   .prose-with-toc {
     display: grid;
-    grid-template-columns: minmax(0, var(--measure)) 14rem;
+    grid-template-columns: minmax(0, var(--measure)) var(--toc-width);
     gap: 2.5rem;
     align-items: start;
   }

@@ -24,6 +24,8 @@ interface Props {
   updated?: Date;
   /** Remove the width cap for index pages that want a wider grid. */
   wide?: boolean;
+  /** True for entry pages that render a sticky TOC beside the article. */
+  withToc?: boolean;
 }
 
 const {
@@ -37,6 +39,11 @@ const {
   published,
   updated,
   wide = false,
+  /**
+   * True for entry pages, which render a sticky table of contents beside the
+   * article. The container then has to be wide enough for measure + TOC.
+   */
+  withToc = false,
 } = Astro.props;
 
 const pageTitle = title ? `${title} · ${SITE.name}` : `${SITE.name} — ${SITE.tagline}`;
@@ -136,7 +143,7 @@ const rel = currentPath.startsWith(base) ? currentPath.slice(base.length) || "/"
       </aside>
 
       <main class="site-main" id="main">
-        <div class:list={["wrap", wide && "wrap--wide"]} data-pagefind-body>
+        <div class:list={["wrap", wide && "wrap--wide", withToc && "wrap--entry"]} data-pagefind-body>
           <slot />
         </div>
       </main>
