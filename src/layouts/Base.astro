@@ -4,6 +4,7 @@ import "katex/dist/katex.min.css";
 import Icon from "../components/Icon.astro";
 import SideNav from "../components/SideNav.astro";
 import SearchDialog from "../components/SearchDialog.astro";
+import ThemeToggle from "../components/ThemeToggle.astro";
 import { SITE } from "../lib/site";
 import { href } from "../lib/utils";
 import type { Counted } from "../lib/entries";
@@ -125,15 +126,7 @@ const rel = currentPath.startsWith(base) ? currentPath.slice(base.length) || "/"
             <button type="button" class="header-link" data-search-open aria-label="Search the vault">
               <Icon name="search" size="0.95em" /> Search
             </button>
-            <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch colour theme">
-              <svg class="icon-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-                <circle cx="12" cy="12" r="4"></circle>
-                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
-              </svg>
-              <svg class="icon-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" hidden>
-                <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"></path>
-              </svg>
-            </button>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -166,38 +159,6 @@ const rel = currentPath.startsWith(base) ? currentPath.slice(base.length) || "/"
     <SearchDialog />
 
     <script>
-      // --- theme toggle -----------------------------------------------------
-      const root = document.documentElement;
-      const toggle = document.getElementById("theme-toggle");
-      const sun = toggle?.querySelector<SVGElement>(".icon-sun");
-      const moon = toggle?.querySelector<SVGElement>(".icon-moon");
-
-      function syncToggle() {
-        const isDark =
-          root.getAttribute("data-theme") === "dark" ||
-          (!root.hasAttribute("data-theme") &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches);
-        if (sun) sun.hidden = isDark;
-        if (moon) moon.hidden = !isDark;
-        toggle?.setAttribute("aria-pressed", String(isDark));
-      }
-
-      toggle?.addEventListener("click", () => {
-        const isDark =
-          root.getAttribute("data-theme") === "dark" ||
-          (!root.hasAttribute("data-theme") &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches);
-        const next = isDark ? "light" : "dark";
-        root.setAttribute("data-theme", next);
-        try {
-          localStorage.setItem("vault-theme", next);
-        } catch (e) {}
-        syncToggle();
-      });
-
-      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", syncToggle);
-      syncToggle();
-
       // --- mobile navigation panel -----------------------------------------
       const menuToggle = document.getElementById("menu-toggle");
       const sidebar = document.getElementById("sidebar");

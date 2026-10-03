@@ -502,8 +502,8 @@ tbody tr:hover {
   gap: 0.15rem;
 }
 
-.theme-toggle,
-.menu-toggle {
+/* Generic square icon button (menu, dialog close, …). */
+.icon-btn {
   appearance: none;
   border: 1px solid transparent;
   background: transparent;
@@ -516,11 +516,15 @@ tbody tr:hover {
   border-radius: var(--radius-sm);
   padding: 0;
 }
-.theme-toggle:hover,
-.menu-toggle:hover {
+.icon-btn:hover {
   background: var(--surface-2);
   color: var(--text);
 }
+.icon-btn svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
 .menu-toggle {
   display: inline-grid;
 }
@@ -529,9 +533,111 @@ tbody tr:hover {
     display: none;
   }
 }
-.theme-toggle svg {
+
+/* ----------------------------------------------------------- theme slider -- */
+/*
+ * A two-position slider rather than a bare icon button: the track shows both
+ * ends at once, so the current state is legible at a glance and it reads as
+ * "something you set" rather than "something you press".
+ *
+ * The icons sit in the *gutters* at either end, outside the thumb's travel, and
+ * the thumb itself carries the icon of the active theme. If the icons sat at the
+ * very ends the thumb would land exactly on top of them, leaving a featureless
+ * disc — which is worse than the button this replaced.
+ */
+.theme-slider {
+  appearance: none;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-sunken);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  width: 3.05rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  flex: none;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.theme-slider:hover {
+  border-color: var(--accent-soft);
+}
+.theme-slider:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+/* The inactive theme's icon, parked at the opposite end of the travel. */
+.theme-slider__icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--text-faint);
+  pointer-events: none;
+  transition: color 0.18s ease, opacity 0.18s ease;
+}
+.theme-slider__icon svg {
+  width: 0.78rem;
+  height: 0.78rem;
+}
+.theme-slider__icon--off {
+  right: 0.16rem;
+}
+.theme-slider__icon--off svg {
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.theme-slider__thumb {
+  position: absolute;
+  top: 50%;
+  left: 0.17rem;
   width: 1.05rem;
   height: 1.05rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translate(0, -50%);
+  transition: transform 0.22s cubic-bezier(0.32, 0.72, 0.28, 1), background 0.18s ease,
+    border-color 0.18s ease;
+}
+.theme-slider__thumb svg {
+  width: 0.72rem;
+  height: 0.72rem;
+  color: var(--accent);
+  transition: color 0.18s ease;
+}
+
+/* Dark: thumb to the right, filled with the accent, and the inactive sun fades
+   back so the moon is unambiguously the active end. */
+.theme-slider[aria-checked="true"] .theme-slider__thumb {
+  transform: translate(1.44rem, -50%);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.theme-slider[aria-checked="true"] .theme-slider__thumb svg {
+  color: #241d0c;
+}
+.theme-slider[aria-checked="true"] .theme-slider__icon--off {
+  opacity: 0.4;
+}
+.theme-slider[aria-checked="false"] .theme-slider__icon--off {
+  color: var(--text-soft);
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-slider__thumb,
+  .theme-slider__icon,
+  .theme-slider__thumb svg {
+    transition: none;
+  }
 }
 
 /* --------------------------------------------------------------- sidebar -- */

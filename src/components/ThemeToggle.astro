@@ -1,0 +1,77 @@
+---
+/**
+ * Light/dark slider.
+ *
+ * The thumb rides from the sun end to the moon end, so the control shows its
+ * current state instead of merely offering an action. It is a real
+ * role="switch": aria-checked is "true" when dark.
+ *
+ * Behaviour: clicking sets an explicit theme, remembered in localStorage. Until
+ * then no data-theme attribute is written at all, so the site follows the OS
+ * setting — that is what the small inline script in Base.astro's <head> reads
+ * to set the theme before first paint, which is why the logic lives here and
+ * the flash-prevention lives there.
+ */
+import Icon from "./Icon.astro";
+---
+
+<button
+  type="button"
+  class="theme-slider"
+  id="theme-toggle"
+  role="switch"
+  aria-checked="false"
+  aria-label="Dark theme"
+  title="Switch between light and dark"
+>
+  <span class="theme-slider__icon theme-slider__icon--off" aria-hidden="true">
+    <Icon name="moon" size="0.7rem" />
+  </span>
+  <span class="theme-slider__thumb" aria-hidden="true">
+    <Icon name="sun" size="0.72rem" />
+  </span>
+</button>
+
+<script>
+  const root = document.documentElement;
+  const toggle = document.getElementById("theme-toggle");
+
+  /** Which theme is actually showing right now (resolving "follow the OS"). */
+  function isDarkNow(): boolean {
+    const explicit = root.getAttribute("data-theme");
+    if (explicit === "dark") return true;
+    if (explicit === "light") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+
+  function sync() {
+    if (!toggle) return;
+    const dark = isDarkNow();
+    toggle.setAttribute("aria-checked", String(dark));
+    toggle.title = dark ? "Switch to light theme" : "Switch to dark theme";
+  }
+
+  toggle?.addEventListener("click", () => {
+    const next = isDarkNow() ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try {
+      localStorage.setItem("vault-theme", next);
+    } catch {
+      /* private mode: the theme just will not persist */
+    }
+    sync();
+  });
+
+  // If the reader has never chosen, follow the OS as it changes.
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem("vault-theme");
+    } catch {
+      /* ignore */
+    }
+    if (stored !== "light" && stored !== "dark") sync();
+  });
+
+  sync();
+</script>
