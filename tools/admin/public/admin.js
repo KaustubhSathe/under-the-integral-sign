@@ -252,24 +252,32 @@ function renderForm() {
   const host = $("#fields");
   host.innerHTML = "";
 
-  // Slug gets its own always-visible field at the top: it is the filename.
-  const slugWrap = document.createElement("div");
-  slugWrap.className = "field";
-  slugWrap.innerHTML = '<div class="field__label">Filename slug</div>';
-  const slugInput = document.createElement("input");
-  slugInput.type = "text";
-  slugInput.id = "field-slug";
-  slugInput.value =
-    cur.frontmatter.slug ??
-    (cur.path ? cur.path.slice(cur.path.lastIndexOf("/") + 1).replace(/\.md$/, "") : "");
-  slugInput.addEventListener("input", () => markDirty());
-  slugWrap.appendChild(slugInput);
-  const slugHint = document.createElement("div");
-  slugHint.className = "field__hint";
-  slugHint.textContent =
-    "Lowercase, hyphenated. Changing this renames the file (and its URL) only when you use “Rename file…”.";
-  slugWrap.appendChild(slugHint);
-  host.appendChild(slugWrap);
+  /*
+   * The file path is shown READ-ONLY rather than as an editable "slug" field.
+   *
+   * There are two reasons. A frontmatter `slug` would override Astro's entry id
+   * and flatten the URL, so the path is the single source of truth; and an input
+   * that looks editable but is ignored is worse than no input at all. Renaming
+   * goes through "Rename file…", which actually moves the file.
+   */
+  const fileWrap = document.createElement("div");
+  fileWrap.className = "field";
+  fileWrap.innerHTML = '<div class="field__label">File</div>';
+  const fileText = document.createElement("div");
+  fileText.className = "mono";
+  fileText.id = "field-file";
+  fileText.style.cssText = "color:var(--text-2); font-size:0.85rem; word-break:break-all";
+  fileText.textContent = cur.isNew
+    ? "not saved yet — the file is named after the title"
+    : `content/${cur.kind}/${cur.path}`;
+  fileWrap.appendChild(fileText);
+  const fileHint = document.createElement("div");
+  fileHint.className = "field__hint";
+  fileHint.textContent = cur.isNew
+    ? "The topic decides the folder; the title decides the filename."
+    : "This path is the entry's URL. Use “Rename file…” to change the filename.";
+  fileWrap.appendChild(fileHint);
+  host.appendChild(fileWrap);
 
   for (const f of fieldsFor(cur.kind)) {
     host.appendChild(renderField(f, cur.frontmatter[f.key]));
@@ -430,9 +438,12 @@ function collect() {
   const cur = state.current;
   const fm = {};
 
-  const slug = $("#field-slug")?.value.trim();
-  if (slug) fm.slug = slug;
-
+  /*
+   * Deliberately no `slug` key. Astro's glob loader treats a frontmatter slug as
+   * the entry's entire id, which collapses its URL and loses the topic folder.
+   * The file path is the single source of truth; renaming goes through
+   * "Rename file…", which actually moves the file.
+   */
   for (const f of fieldsFor(cur.kind)) {
     const el = $(`#field-${f.key}`);
     switch (f.type) {
@@ -464,10 +475,28 @@ function markDirty() {
   setSaveState("unsaved");
 }
 
+/*
+ * Saved / unsaved / error is the single source of truth for whether Save can be
+ * pressed.
+ *
+ * The button used to start `disabled` in the markup and nothing ever enabled it,
+ * so it was dead for any entry the user had not typed into. That is exactly an
+ * AI draft: the body arrives already filled, no input event fires, and Save stays
+ * greyed out with no explanation. Manual entries appeared to work only because
+ * typing in the body happened to flip it.
+ */
 function setSaveState(kind) {
   const el = $("#saveState");
   el.textContent = kind;
   el.className = `badge ${kind === "saved" ? "badge--ok" : kind === "unsaved" ? "badge--warn" : "badge--err"}`;
+
+  const save = $("#saveBtn");
+  if (save) {
+    const canSave = kind !== "saved";
+    save.disabled = !canSave;
+    // Say why it is unavailable, rather than leaving a dead-looking control.
+    save.title = canSave ? "Write the entry to disk" : "No changes to save";
+  }
 }
 
 /* ------------------------------------------------------------------- save -- */
@@ -525,12 +554,49 @@ async function save({ renameFile = false, force = false } = {}) {
       );
       if (overwrite) return save({ renameFile, force: true });
     } else if (err.payload?.errors?.length) {
-      toast("Frontmatter is invalid — see the message under the editor.", "err", 6000);
+      /*
+       * Point at the offending fields, and flash them, rather than leaving the
+       * reader to work out which of twenty inputs the server objected to.
+       */
+      const keys = fieldsNamedIn(err.payload.errors);
+      for (const key of keys) {
+        const el = $(`#field-${key}`);
+        if (!el) continue;
+        el.classList.add("field--invalid");
+        setTimeout(() => el.classList.remove("field--invalid"), 4000);
+      }
+      const where = keys.length ? ` Check: ${keys.join(", ")}.` : "";
+      toast(`Frontmatter is invalid.${where}`, "err", 8000);
+      $("#status").scrollIntoView({ block: "nearest" });
     } else {
       toast(err.message, "err", 6000);
     }
     return false;
   }
+}
+
+/**
+ * Which form fields does a list of validation errors refer to?
+ *
+ * The server phrases errors by label ("Difficulty is required."), so the label is
+ * matched back to its field key. Label text is compared case-insensitively and by
+ * prefix, because messages vary ("Exam source: ... is not one of ...").
+ */
+function fieldsNamedIn(errors) {
+  const cur = state.current;
+  if (!cur) return [];
+  const fields = fieldsFor(cur.kind);
+  const keys = new Set();
+  for (const message of errors) {
+    const lower = String(message).toLowerCase();
+    for (const f of fields) {
+      const label = String(f.label ?? f.key).toLowerCase();
+      if (lower.startsWith(label) || lower.includes(`${label}:`) || lower.includes(`${label} is`)) {
+        keys.add(f.key);
+      }
+    }
+  }
+  return [...keys];
 }
 
 $("#saveBtn").addEventListener("click", () => save());
@@ -559,10 +625,20 @@ const ai = {
 };
 
 /**
- * The vault has a single topic, so the folder beneath it is derived rather than
- * asked for. This is a PATH segment, not frontmatter: the content schema has no
- * `subtopic` field, and writing one would be a lie about the entry's shape.
+ * A difficulty the schema will accept.
+ *
+ * `difficulty` is required, so leaving it unset makes the entry unsaveable. A
+ * model that returns something off-list ("medium", "easy") would otherwise be
+ * silently dropped and the select left on "— none —", which is what broke
+ * saving with no visible cause.
  */
+function validDifficulty(preferred) {
+  const valid = state.boot.schema.difficulties.map((x) => x.value);
+  if (valid.includes(preferred)) return preferred;
+  return valid.includes("standard") ? "standard" : valid[0];
+}
+
+/** The single subtopic of a topic: a PATH segment, never frontmatter. */
 function soleSubtopicFor(topic) {
   const subs = state.boot.schema.subtopicsByTopic?.[topic] ?? [];
   return subs[0]?.value ?? topic;
@@ -805,13 +881,19 @@ $("#newForm").addEventListener("submit", async (event) => {
   $("#newDialog").close();
 
   // Start from an empty frontmatter bag, then let the schema defaults apply.
-  // No `subtopic` key: it is a folder, not a field.
+  // No `subtopic` key: it is a folder, not a field. `difficulty` is required, so
+  // it is seeded rather than left blank and rejected at save time.
   state.current = {
     kind,
     path: "",
     isNew: true,
     mtime: null,
-    frontmatter: { title, topic, status: "stub" },
+    frontmatter: {
+      title,
+      topic,
+      status: "stub",
+      ...(kind === "problems" ? { difficulty: validDifficulty("standard") } : {}),
+    },
     body: defaultBody(kind, title),
   };
   state.dirty = true;
@@ -921,8 +1003,9 @@ async function generateAiDraft({ kind, topic }) {
     if (Array.isArray(d.tags) && d.tags.length) fm.tags = d.tags;
 
     if (kind === "problems") {
-      const valid = state.boot.schema.difficulties.map((x) => x.value);
-      if (valid.includes(d.difficulty)) fm.difficulty = d.difficulty;
+      // Required, so it is always seeded with something valid: the model's choice
+      // when it is one the schema knows, otherwise a sensible default.
+      fm.difficulty = validDifficulty(d.difficulty);
       // Only accept an exam the schema knows, and never override "own" silently:
       // a wrong competition label is worse than a blank one.
       const exams = state.boot.schema.examTypes.map((x) => x.value);

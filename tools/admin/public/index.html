@@ -35,7 +35,8 @@
         </div>
         <div class="topbar__spacer"></div>
         <span class="badge" id="saveState">no entry open</span>
-        <button class="btn btn--primary" id="saveBtn" disabled>Save <span style="opacity:0.7">(⌘S)</span></button>
+        <!-- Enabled by setSaveState(); starts disabled because nothing is loaded. -->
+        <button class="btn btn--primary" id="saveBtn" disabled title="No changes to save">Save <span style="opacity:0.7">(⌘S)</span></button>
         <button class="btn" id="newBtn">New</button>
         <button class="btn btn--ghost" id="logoutBtn">Sign out</button>
       </header>

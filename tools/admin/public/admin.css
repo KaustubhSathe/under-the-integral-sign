@@ -727,6 +727,13 @@ input[type="checkbox"] {
   background: var(--bg-2);
 }
 
+/* A field the server rejected, flashed briefly after a failed save. */
+.field--invalid {
+  outline: 2px solid #6b3232;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
 .aiimage {
   /*
    * `fit-content` so the box hugs the picture instead of stretching to the full
